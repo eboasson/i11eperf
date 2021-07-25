@@ -1,0 +1,40 @@
+module i11eperf {
+  struct ou {
+    unsigned long s;
+  };
+
+  struct a32 {
+    unsigned long s;
+    octet xary[32 - 4];
+  };
+
+  struct a128 {
+    unsigned long s;
+    octet xary[128 - 4];
+  };
+
+  struct a1024 {
+    unsigned long s;
+    octet xary[1024 - 4];
+  };
+
+  struct a48k {
+    unsigned long s;
+    octet xary[48*1024 - 4];
+  };
+
+  struct a64k {
+    unsigned long s;
+    octet xary[64*1024 - 4];
+  };
+
+  struct a1M {
+    unsigned long s;
+    octet xary[1024*1024 - 4];
+  };
+
+  struct seq {
+    unsigned long s;
+    sequence<octet> xseq;
+  };
+};
