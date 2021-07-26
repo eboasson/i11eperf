@@ -28,7 +28,7 @@ eprosima::fastdds::dds::DomainParticipant *make_participant()
 #if ! SHM
   pqos.transport().use_builtin_transports = false;
   auto udp_transport = std::make_shared<UDPv4TransportDescriptor>();
-  udp_transport->interfaceWhiteList.push_back("127.0.0.1");
+  //udp_transport->interfaceWhiteList.push_back("127.0.0.1");
   pqos.transport().user_transports.push_back(udp_transport);
 #endif
   return DomainParticipantFactory::get_instance()->create_participant(0, pqos);
