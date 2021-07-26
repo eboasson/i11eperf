@@ -19,7 +19,6 @@
 #include "i11eperf.hpp"
 #include "config.h"
 
-#ifdef CYCLONEDDS
 #include "dds/dds.h"
 static void batching()
 {
@@ -27,9 +26,6 @@ static void batching()
   dds_write_set_batch (true);
 #endif
 }
-#else
-static void batching() {}
-#endif
 
 static volatile sig_atomic_t interrupted = 0;
 static void sigh (int sig __attribute__ ((unused))) { interrupted = 1; }

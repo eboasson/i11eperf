@@ -15,7 +15,7 @@
 #include <string.h>
 
 #include "dds/dds.h"
-#include "i11eperf_c.h"
+#include "i11eperf_a.h"
 #include "config.h"
 
 static double bytes_fixed (const DATATYPE_C *s) {

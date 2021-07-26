@@ -32,7 +32,7 @@
 #    define HISTORY_KIND DDS_HISTORY_KEEP_LAST
 #    define HISTORY_DEPTH HISTORY
 #  endif
-#elif defined FASTDDS
+#elif defined FASTDDS || defined OPENDDS
 #  if HISTORY == KEEP_ALL
 #    define HISTORY_KIND KEEP_ALL_HISTORY_QOS
 #    define HISTORY_DEPTH 1

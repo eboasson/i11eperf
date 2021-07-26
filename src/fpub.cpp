@@ -17,6 +17,7 @@
 
 #include "fastdds_i11eperf.hpp"
 #include "config.h"
+#include "fcommon.hpp"
 
 using namespace eprosima::fastdds::dds;
 using namespace eprosima::fastdds::rtps;
@@ -52,17 +53,6 @@ static void pub(DomainParticipant *dp)
 
 int main()
 {
-  DomainParticipantQos pqos;
-  pqos.transport().use_builtin_transports = false;
-  auto udp_transport = std::make_shared<UDPv4TransportDescriptor>();
-  udp_transport->interfaceWhiteList.push_back("127.0.0.1");
-  pqos.transport().user_transports.push_back(udp_transport);
-#if SHM
-  auto shm_transport = std::make_shared<SharedMemTransportDescriptor>();
-  shm_transport->segment_size(2 * 1024 * 1024);
-  pqos.transport().user_transports.push_back(shm_transport);
-#endif
-  auto dp = DomainParticipantFactory::get_instance()->create_participant(0, pqos);
-  pub<DATATYPE_CPP>(dp);
+  pub<DATATYPE_CPP>(make_participant());
   return 0;
 }
