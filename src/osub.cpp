@@ -15,6 +15,7 @@
 #include <thread>
 
 #include "opendds_i11eperf.hpp"
+#include "stats.hpp"
 #include "config.h"
 
 using namespace DDS;
@@ -29,62 +30,15 @@ double bytes(const i11eperf::seq& s) {
   return 4 + s.xseq.length();
 }
 
-class Stats {
-public:
-  Stats() :
-    tnext_(std::chrono::steady_clock::now() + std::chrono::seconds(1)),
-    count_(0), bytes_(0), lost_(0), errs_(0), nseq_(UINT32_MAX), nlats_(0) { }
-
-  void update(uint32_t seq, size_t bytes, double lat) {
-    if (seq != nseq_) {
-      if (nseq_ != UINT32_MAX) {
-        if (static_cast<int32_t>(seq - nseq_) < 0)
-          errs_ += 1;
-        else
-          lost_ += seq - nseq_;
-      }
-    }
-    nseq_ = seq + 1;
-    count_ += 1;
-    bytes_ += bytes;
-    if (nlats_ < sizeof (lats_) / sizeof (lats_[0]))
-      lats_[nlats_++] = lat;
-  }
-
-  void report() {
-    std::chrono::time_point<std::chrono::steady_clock> tnow = std::chrono::steady_clock::now();
-    if (tnow > tnext_)
-    {
-      std::sort(lats_, lats_ + nlats_);
-      std::chrono::duration<double> dt = tnow - tnext_ + std::chrono::seconds(1);
-      double srate = static_cast<double>(count_) / dt.count();
-      double brate = static_cast<double>(bytes_) / dt.count();
-      std::cout << std::setprecision(5) << std::setw(7)
-                << (srate * 1e-3) << " kS/s "
-                << (brate * 8e-6) << " Mb/s "
-                << lost_ << " lost " << errs_ << " errs "
-                << 1e6 * ((nlats_ == 0) ? 0 : lats_[nlats_ - (nlats_ + 9) / 10]) << " us90%lat"
-                << std::endl << std::flush;
-      tnext_ = tnow + std::chrono::seconds(1);
-      count_ = bytes_ = lost_ = nlats_ = 0;
-    }
-  }
-
-private:
-  std::chrono::time_point<std::chrono::steady_clock> tnext_;
-  unsigned count_;
-  unsigned bytes_;
-  unsigned lost_;
-  unsigned errs_;
-  uint32_t nseq_;
-  unsigned nlats_;
-  double lats_[1000];
-};
-
 template<typename T>
 class L : public DataReaderListener {
 public:
-  L(DomainParticipant *dp) : dp_(dp) {}
+  L(DomainParticipant *dp, std::string statsname) : dp_(dp), stats_(10000000, statsname) {
+    Time_t tref;
+    dp_->get_current_time(tref);
+    tref_s_ = tref.sec;
+    tref_ns_ = tref.nanosec;
+  }
   
   virtual void on_data_available(DataReader *wrd)
   {
@@ -100,7 +54,9 @@ public:
       if (si.valid_data) {
         const int64_t s = si.source_timestamp.sec;
         const int32_t ns = si.source_timestamp.nanosec;
-        stats_.update(x.s, bytes(x), ((tnow_s - s) * 1000000000 + tnow_ns - ns)/1e9);
+        stats_.update(x.s, bytes(x),
+                      ((tnow_s - tref_s_) * 1000000000 + tnow_ns - tref_ns_)/1e9,
+                      ((tnow_s - s) * 1000000000 + tnow_ns - ns)/1e9);
       }
     }
     stats_.report();
@@ -114,6 +70,8 @@ public:
   virtual void on_sample_lost(DataReader *rd, const SampleLostStatus& status) {}
 
 private:
+  int64_t tref_s_;
+  int32_t tref_ns_;
   DomainParticipant *dp_;
   Stats stats_;
 };
@@ -122,14 +80,15 @@ static volatile sig_atomic_t interrupted = 0;
 static void sigh (int sig __attribute__ ((unused))) { interrupted = 1; }
 
 template<typename T>
-static void sub(DomainParticipant *dp)
+static void sub(DomainParticipant *dp, std::string statsname)
 {
+  L<T> l(dp, statsname);
+
   TYPESUPPORT(DATATYPE);
   ts->register_type(dp, "");
   DDS::Subscriber *sub = dp->create_subscriber(SUBSCRIBER_QOS_DEFAULT, 0, OpenDDS::DCPS::DEFAULT_STATUS_MASK);
   DDS::Topic *tp = dp->create_topic("Data", ts->get_type_name(), TOPIC_QOS_DEFAULT, 0, OpenDDS::DCPS::DEFAULT_STATUS_MASK);
 
-  L<T> l(dp);
   DataReaderQos qos;
   sub->get_default_datareader_qos(qos);
   qos.history.kind = HISTORY_KIND;
@@ -140,13 +99,18 @@ static void sub(DomainParticipant *dp)
 
   signal(SIGTERM, sigh);
   while (!interrupted)
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+  sub->delete_datareader(wrd);
+  dp->delete_subscriber(sub);
+  dp->delete_topic(tp);
 }
 
 int main(int argc, char **argv)
 {
   DDS::DomainParticipantFactory *dpf = TheParticipantFactoryWithArgs(argc, argv);
   DDS::DomainParticipant *dp = dpf->create_participant(0, PARTICIPANT_QOS_DEFAULT, 0, OpenDDS::DCPS::DEFAULT_STATUS_MASK);
-  sub<DATATYPE_CPP>(dp);
+  sub<DATATYPE_CPP>(dp, argc < 2 ? "" : std::string(argv[1]));
+  dpf->delete_participant(dp);
   return 0;
 }

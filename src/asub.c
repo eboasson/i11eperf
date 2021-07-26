@@ -28,22 +28,30 @@ static double bytes_sequence (const i11eperf_seq *s) {
     i11eperf_seq: bytes_sequence,               \
     default: bytes_fixed) (X)
 
+struct tslat {
+  double t, l;
+};
+
 struct Stats {
   dds_time_t tnext;
   unsigned count, bytes, lost, errs, nseq;
-  unsigned nlats;
+  unsigned nlats, nraw, maxraw;
+  struct tslat *raw;
   double lats[1000];
+  const char *statsname;
 };
 
-static void Stats_init (struct Stats *s)
+static void Stats_init (struct Stats *s, unsigned maxraw, const char *statsname)
 {
   s->tnext = dds_time () + DDS_SECS (1);
-  s->count = s->bytes = s->lost = s->errs = 0;
-  s->nlats = 0;
+  s->count = s->bytes = s->lost = s->errs = s->nlats = s->nraw = 0;
   s->nseq = UINT32_MAX;
+  s->maxraw = maxraw;
+  s->raw = malloc (maxraw * sizeof (*s->raw));
+  s->statsname = strdup (statsname);
 }
 
-static void Stats_update (struct Stats *s, uint32_t seq, size_t bytes, double lat)
+static void Stats_update (struct Stats *s, uint32_t seq, size_t bytes, double ts, double lat)
 {
   if (seq != s->nseq) {
     if (s->nseq != UINT32_MAX) {
@@ -56,8 +64,16 @@ static void Stats_update (struct Stats *s, uint32_t seq, size_t bytes, double la
   s->nseq = seq + 1;
   s->count += 1;
   s->bytes += bytes;
+  if (s->nraw < s->maxraw)
+  {
+    s->raw[s->nraw].t = ts;
+    s->raw[s->nraw].l = lat;
+    s->nraw++;
+  }
   if (s->nlats < sizeof (s->lats) / sizeof (s->lats[0]))
+  {
     s->lats[s->nlats++] = lat;
+  }
 }
 
 static int double_cmp (const void *va, const void *vb)
@@ -83,9 +99,20 @@ static void Stats_report (struct Stats *s)
   }
 }
 
+static void Stats_fini (struct Stats *s)
+{
+  if (strcmp (s->statsname, ""))
+  {
+    FILE *fp = fopen (s->statsname, "wb");
+    fwrite (s->raw, sizeof (s->raw[0]), s->nraw, fp);
+    fclose (fp);
+  }
+}
+
 static DATATYPE_C xs[5];
 static dds_sample_info_t si[sizeof (xs) / sizeof (xs[0])];
 static void *ptrs[sizeof (xs) / sizeof (xs[0])];
+static dds_time_t tref;
 
 static void on_data_available(dds_entity_t rd, void *varg)
 {
@@ -97,7 +124,9 @@ static void on_data_available(dds_entity_t rd, void *varg)
     dds_time_t tnow = dds_time ();
     for (int i = 0; i < n; i++)
       if (si[i].valid_data)
-        Stats_update(stats, xs[i].s, bytes(&xs[i]), (double) (tnow - si[i].source_timestamp) / 1e9);
+        Stats_update(stats, xs[i].s, bytes(&xs[i]),
+                     (double) (tnow - tref) / 1e9,
+                     (double) (tnow - si[i].source_timestamp) / 1e9);
   } while (n == N);
   Stats_report (stats);
 }
@@ -105,8 +134,12 @@ static void on_data_available(dds_entity_t rd, void *varg)
 static volatile sig_atomic_t interrupted = 0;
 static void sigh (int sig __attribute__ ((unused))) { interrupted = 1; }
 
-static void sub (dds_entity_t dp)
+static void sub (dds_entity_t dp, const char *statsname)
 {
+  struct Stats stats;
+  Stats_init (&stats, 10000000, statsname);
+  tref = dds_time ();
+
   dds_entity_t tp = dds_create_topic (dp, &CONCAT (DATATYPE_C, _desc), "Data", NULL, NULL);
   dds_qos_t *qos = dds_create_qos ();
   dds_qset_reliability (qos, DDS_RELIABILITY_RELIABLE, DDS_INFINITY);
@@ -117,8 +150,6 @@ static void sub (dds_entity_t dp)
   for (size_t i = 0; i < sizeof (xs) / sizeof (xs[0]); i++)
     ptrs[i] = &xs[i];
 
-  struct Stats stats;
-  Stats_init (&stats);
   dds_listener_t *list = dds_create_listener (&stats);
   dds_lset_data_available (list, on_data_available);
   dds_set_listener (rd, list);
@@ -126,13 +157,17 @@ static void sub (dds_entity_t dp)
 
   signal (SIGTERM, sigh);
   while (!interrupted)
-    dds_sleepfor (DDS_SECS (1));
+    dds_sleepfor (DDS_MSECS (100));
+
+  dds_delete (tp);
+  dds_delete (rd);
+  Stats_fini (&stats);
 }
 
-int main()
+int main(int argc, char **argv)
 {
   dds_entity_t dp = dds_create_participant (0, NULL, NULL);
-  sub(dp);
+  sub(dp, argc < 2 ? "" : argv[1]);
   dds_delete (dp);
   return 0;
 }
