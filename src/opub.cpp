@@ -50,6 +50,10 @@ static void pub(DomainParticipant_var dp)
     std::this_thread::sleep_for(std::chrono::milliseconds(SLEEP_MS));
 #endif
   }
+
+  pub->delete_datawriter(wrw);
+  dp->delete_publisher(pub);
+  dp->delete_topic(tp);
 }
 
 int main(int argc, char *argv[])
@@ -57,5 +61,6 @@ int main(int argc, char *argv[])
   DDS::DomainParticipantFactory *dpf = TheParticipantFactoryWithArgs(argc, argv);
   DDS::DomainParticipant *dp = dpf->create_participant(0, PARTICIPANT_QOS_DEFAULT, 0, OpenDDS::DCPS::DEFAULT_STATUS_MASK);
   pub<DATATYPE_CPP>(dp);
+  dpf->delete_participant(dp);
   return 0;
 }
