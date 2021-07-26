@@ -41,9 +41,9 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 17)
 
 option(KEEP_ALL "Use KEEP_ALL history" ON)
-option(BATCHING "Enable batching (impl. dependent)" ON)
-option(SHM "Enable use of shared memory (impl. dependent)" OFF)
-set(DATATYPE "ou" CACHE STRING "Data type to use")
+option(BATCHING "Enable batching (impl. dependent)" OFF)
+option(SHM "Enable use of shared memory (impl. dependent)" ON)
+set(DATATYPE "1024" CACHE STRING "Data type to use")
 set(SLEEP_MS 0 CACHE STRING "ms to sleep between two pubs")
 
 if(KEEP_ALL)
