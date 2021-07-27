@@ -82,14 +82,14 @@ static void sub(DomainParticipant *dp, std::string statsname)
   qos.history.kind = HISTORY_KIND;
   qos.history.depth = HISTORY_DEPTH;
   qos.reliability.kind = RELIABLE_RELIABILITY_QOS;
-  DDS::DataReader *wrd = sub->create_datareader(tp, qos, &l, OpenDDS::DCPS::DEFAULT_STATUS_MASK);
-  CONCAT(i11eperf::DATATYPE, DataReader) *rd = NARROW_R(wrd);
+  DDS::DataReader *rdw = sub->create_datareader(tp, qos, &l, OpenDDS::DCPS::DEFAULT_STATUS_MASK);
+  CONCAT(i11eperf::DATATYPE, DataReader) *rd = NARROW_R(rdw);
 
   signal(SIGTERM, sigh);
   while (!interrupted)
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-  sub->delete_datareader(wrd);
+  sub->delete_datareader(rdw);
   dp->delete_subscriber(sub);
   dp->delete_topic(tp);
 }
