@@ -96,6 +96,7 @@ static void sub(DomainParticipant *dp, std::string statsname)
 
 int main(int argc, char **argv)
 {
+  TheServiceParticipant->default_configuration_file(ACE_TEXT("opendds.ini"));
   DDS::DomainParticipantFactory *dpf = TheParticipantFactoryWithArgs(argc, argv);
   DDS::DomainParticipant *dp = dpf->create_participant(0, PARTICIPANT_QOS_DEFAULT, 0, OpenDDS::DCPS::DEFAULT_STATUS_MASK);
   sub<DATATYPE_CPP>(dp, argc < 2 ? "" : std::string(argv[1]));

@@ -149,6 +149,12 @@ if(OPENDDS_FOUND)
   target_compile_definitions(osub PUBLIC OPENDDS)
   target_link_libraries(opub i11eperf_o OpenDDS::OpenDDS)
   target_link_libraries(osub i11eperf_o OpenDDS::OpenDDS)
+  add_custom_target(opendds_ini ALL)
+  add_custom_command(
+    TARGET opendds_ini POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_CURRENT_LIST_DIR}/opendds.ini
+            ${CMAKE_CURRENT_BINARY_DIR}/opendds.ini)
 else()
   message(STATUS "OpenDDS not found")
 endif()

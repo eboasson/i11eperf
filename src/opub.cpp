@@ -60,6 +60,7 @@ static void pub(DomainParticipant_var dp)
 
 int main(int argc, char *argv[])
 {
+  TheServiceParticipant->default_configuration_file(ACE_TEXT("opendds.ini"));
   DDS::DomainParticipantFactory *dpf = TheParticipantFactoryWithArgs(argc, argv);
   DDS::DomainParticipant *dp = dpf->create_participant(0, PARTICIPANT_QOS_DEFAULT, 0, OpenDDS::DCPS::DEFAULT_STATUS_MASK);
   pub<DATATYPE_CPP>(dp);
