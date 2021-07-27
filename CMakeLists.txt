@@ -132,19 +132,20 @@ endif()
 
 ### OpenDDS
 #
-# - run {opub,osub} with -DCPSConfigFile ../opendds.ini
-#
 # - use C++98 because on macOS at least the generated code depends on some template
 #   that in the OpenDDS binaries comes from the __1 namespace (I guess that's TR1),
 #   but that the application expects to come from the std namespace when built with
 #   C++11 or later
 #
-# - no errors, but no comms with Cyclone (it looks like it assumes it should send to
-#   Cyclone's transmit socket's port number rather than to the advertised locator;
-#   adding the transmit socket to the set of sockets that Cyclone listens to helps a
-#   little but not enough)
-#
-# - "failed to deserialize data payload for SPDP" with Fast-DDS ...
+# - interoperability is really problematic ...
+#   - DCPSRTISerialization is needed
+#   - Cyclone needs a patch to also receive on the sockets it uses to transmit
+#     because OpenDDS "knows best" and ignores the locators advertised by Cyclone
+#   - apub -> osub works somewhat, if you have a lot of patience and you enable
+#     tracing on the Cyclone side (presumably because it slows down things a bit)
+#   - opub -> asub doesn't seem to work
+#   - FastDDS with OpenDDS results in "failed to deserialize data payload for SPDP"
+#     errors from OpenDDS
 find_package(opendds)
 if(OPENDDS_FOUND)
   add_library(i11eperf_o)
