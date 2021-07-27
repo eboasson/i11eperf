@@ -35,7 +35,6 @@ cmake_minimum_required(VERSION 3.17)
 # fastddsgen may be in a different place
 #
 # cmake -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_PREFIX_PATH="$HOME/C/cdds/CC/install;$HOME/C/cxx/CC/install;$HOME/C/iceoryx/install;$HOME/adlink/eProsima/install;$HOME/adlink/OpenDDS/install;`brew --prefix`;`brew --prefix openssl`" ..
-set(fastddsgen "$ENV{HOME}/adlink/eProsima/src/fastddsgen/scripts/fastddsgen")
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 17)
@@ -102,11 +101,21 @@ find_package(fastrtps)
 if(fastrtps_FOUND)
   find_package(fastcdr REQUIRED)
   find_package(foonathan_memory REQUIRED)
+
+  # Assuming FastDDS was built using colcon, with or without --merge-install
+  find_file(fastddsgen_LOC fastddsgen HINTS
+    ${fastrtps_DIR}/../../../../../src/fastddsgen/scripts
+    ${fastrtps_DIR}/../../../../src/fastddsgen/scripts)
+  if(fastddsgen_LOC STREQUAL "fastddsgen_LOC-NOTFOUND")
+    message(FATAL_ERROR "fastddsgen not found, try setting fastddsgen_LOC (fastrtps_DIR = ${fastrtps_DIR})")
+  endif()
+  #message(STATUS "fastddsgen = ${fastddsgen_LOC}")
+
   set(fidlgen i11eperf.cxx i11eperf.h i11eperfPubSubTypes.cxx i11eperfPubSubTypes.h)
   list(TRANSFORM fidlgen PREPEND "${CMAKE_CURRENT_BINARY_DIR}/")
   add_custom_command(
     OUTPUT  ${fidlgen}
-    COMMAND "${fastddsgen}"
+    COMMAND "${fastddsgen_LOC}"
     ARGS    -replace "${CMAKE_CURRENT_LIST_DIR}/idl/i11eperf.idl"
     DEPENDS "${CMAKE_CURRENT_LIST_DIR}/idl/i11eperf.idl")
   add_library(i11eperf_f STATIC ${fidlgen})
