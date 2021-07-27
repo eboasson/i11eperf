@@ -14,6 +14,7 @@
 #include "dds/dds.h"
 #include "i11eperf_a.h"
 #include "config.h"
+#include "gettime.h"
 
 static void batching ()
 {
@@ -40,6 +41,7 @@ static void pub (dds_entity_t dp)
   memset (&sample, 0, sizeof (sample));
   while (!interrupted)
   {
+    sample.ts = gettime ();
     dds_write (wr, &sample);
     ++sample.s;
 #if SLEEP_MS != 0

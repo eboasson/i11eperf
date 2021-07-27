@@ -17,6 +17,7 @@
 #include "dds/dds.h"
 #include "i11eperf_a.h"
 #include "config.h"
+#include "gettime.h"
 
 static double bytes_fixed (const DATATYPE_C *s) {
   return sizeof (*s);
@@ -33,7 +34,7 @@ struct tslat {
 };
 
 struct Stats {
-  dds_time_t tnext;
+  int64_t tnext;
   unsigned count, bytes, lost, errs, nseq;
   unsigned nlats, nraw, maxraw;
   struct tslat *raw;
@@ -43,7 +44,7 @@ struct Stats {
 
 static void Stats_init (struct Stats *s, unsigned maxraw, const char *statsname)
 {
-  s->tnext = dds_time () + DDS_SECS (1);
+  s->tnext = gettime () + DDS_SECS (1);
   s->count = s->bytes = s->lost = s->errs = s->nlats = s->nraw = 0;
   s->nseq = UINT32_MAX;
   s->maxraw = maxraw;
@@ -85,7 +86,7 @@ static int double_cmp (const void *va, const void *vb)
 
 static void Stats_report (struct Stats *s)
 {
-  dds_time_t tnow = dds_time ();
+  int64_t tnow = gettime ();
   if (tnow > s->tnext)
   {
     qsort(s->lats, s->nlats, sizeof (s->lats[0]), double_cmp);
@@ -112,7 +113,7 @@ static void Stats_fini (struct Stats *s)
 static DATATYPE_C xs[5];
 static dds_sample_info_t si[sizeof (xs) / sizeof (xs[0])];
 static void *ptrs[sizeof (xs) / sizeof (xs[0])];
-static dds_time_t tref;
+static int64_t tref;
 
 static void on_data_available(dds_entity_t rd, void *varg)
 {
@@ -121,12 +122,10 @@ static void on_data_available(dds_entity_t rd, void *varg)
   int n;
   do {
     n = dds_take(rd, ptrs, si, N, N);
-    dds_time_t tnow = dds_time ();
+    int64_t tnow = gettime ();
     for (int i = 0; i < n; i++)
       if (si[i].valid_data)
-        Stats_update(stats, xs[i].s, bytes(&xs[i]),
-                     (double) (tnow - tref) / 1e9,
-                     (double) (tnow - si[i].source_timestamp) / 1e9);
+        Stats_update(stats, xs[i].s, bytes(&xs[i]), (tnow - tref) / 1e9, (tnow - xs[i].ts) / 1e9);
   } while (n == N);
   Stats_report (stats);
 }
@@ -138,7 +137,7 @@ static void sub (dds_entity_t dp, const char *statsname)
 {
   struct Stats stats;
   Stats_init (&stats, 10000000, statsname);
-  tref = dds_time ();
+  tref = gettime ();
 
   dds_entity_t tp = dds_create_topic (dp, &CONCAT (DATATYPE_C, _desc), "Data", NULL, NULL);
   dds_qos_t *qos = dds_create_qos ();

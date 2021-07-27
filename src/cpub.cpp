@@ -18,6 +18,7 @@
 #include "dds/dds.hpp"
 #include "i11eperf.hpp"
 #include "config.h"
+#include "gettime.h"
 
 #include "dds/dds.h"
 static void batching()
@@ -45,6 +46,7 @@ static void pub(dds::domain::DomainParticipant& dp)
   T sample{};
   while (!interrupted)
   {
+    sample.ts() = gettime();
     wr << sample;
     ++sample.s();
 #if SLEEP_MS != 0

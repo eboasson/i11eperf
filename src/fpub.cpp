@@ -17,6 +17,7 @@
 
 #include "fastdds_i11eperf.hpp"
 #include "config.h"
+#include "gettime.h"
 #include "fcommon.hpp"
 
 using namespace eprosima::fastdds::dds;
@@ -43,6 +44,7 @@ static void pub(DomainParticipant *dp)
   T sample{};
   while (!interrupted)
   {
+    sample.ts() = gettime();
     wr->write((void *)&sample);
     ++sample.s();
 #if SLEEP_MS != 0

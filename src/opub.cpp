@@ -17,6 +17,7 @@
 
 #include "opendds_i11eperf.hpp"
 #include "config.h"
+#include "gettime.h"
 
 using namespace DDS;
 
@@ -44,6 +45,7 @@ static void pub(DomainParticipant_var dp)
   T sample;
   while (!interrupted)
   {
+    sample.ts = gettime();
     wr->write(sample, HANDLE_NIL);
     ++sample.s;
 #if SLEEP_MS != 0

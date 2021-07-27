@@ -1,47 +1,55 @@
 module i11eperf {
   @topic
   struct ou {
+    unsigned long long ts;
     unsigned long s;
   };
 
   @topic
   struct a32 {
+    unsigned long long ts;
     unsigned long s;
-    octet xary[32 - 4];
+    octet xary[32 - 12];
   };
 
   @topic
   struct a128 {
+    unsigned long long ts;
     unsigned long s;
-    octet xary[128 - 4];
+    octet xary[128 - 12];
   };
 
   @topic
   struct a1024 {
+    unsigned long long ts;
     unsigned long s;
-    octet xary[1024 - 4];
+    octet xary[1024 - 12];
   };
 
   @topic
   struct a48k {
+    unsigned long long ts;
     unsigned long s;
-    octet xary[48*1024 - 4];
+    octet xary[48*1024 - 12];
   };
 
   @topic
   struct a64k {
+    unsigned long long ts;
     unsigned long s;
-    octet xary[64*1024 - 4];
+    octet xary[64*1024 - 12];
   };
 
   @topic
   struct a1M {
+    unsigned long long ts;
     unsigned long s;
-    octet xary[1024*1024 - 4];
+    octet xary[1024*1024 - 12];
   };
 
   @topic
   struct seq {
+    unsigned long long ts;
     unsigned long s;
     sequence<octet> xseq;
   };

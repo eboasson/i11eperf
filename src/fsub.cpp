@@ -18,6 +18,7 @@
 #include "bytesize.hpp"
 #include "stats.hpp"
 #include "config.h"
+#include "gettime.h"
 #include "fcommon.hpp"
 
 using namespace eprosima::fastdds::dds;
@@ -29,10 +30,7 @@ template<typename T>
 class L : public DataReaderListener {
 public:
   L(DomainParticipant *dp, std::string statsname) : dp_(dp), stats_(10000000, statsname) {
-    eprosima::fastrtps::Time_t tref;
-    dp_->get_current_time(tref);
-    tref_s_ = tref.seconds;
-    tref_ns_ = tref.nanosec;
+    tref_ = gettime();
   }
   
   void on_data_available(DataReader *rd)
@@ -40,25 +38,17 @@ public:
     ReturnCode_t rc;
     T x;
     SampleInfo si;
-    if ((rc = rd->take_next_sample(&x, &si)) == ReturnCode_t::RETCODE_OK) {
-      eprosima::fastrtps::Time_t tnow;
-      dp_->get_current_time(tnow);
-      const int64_t tnow_s = tnow.seconds;
-      const int32_t tnow_ns = tnow.nanosec;
-      if (si.valid_data) {
-        const int64_t s = si.source_timestamp.seconds();
-        const int32_t ns = si.source_timestamp.nanosec();
-        stats_.update(x.s(), bytes(x),
-                      ((tnow_s - tref_s_) * 1000000000 + tnow_ns - tref_ns_)/1e9,
-                      ((tnow_s - s) * 1000000000 + tnow_ns - ns)/1e9);
-      }
+    if ((rc = rd->take_next_sample(&x, &si)) == ReturnCode_t::RETCODE_OK && si.valid_data) {
+      const int64_t tnow = gettime();
+      const int64_t s = si.source_timestamp.seconds();
+      const int32_t ns = si.source_timestamp.nanosec();
+      stats_.update(x.s(), bytes(x), (tnow-tref_)/1e9, (tnow-x.ts())/1e9);
     }
     stats_.report();
   }
 
 private:
-  int64_t tref_s_;
-  int32_t tref_ns_;
+  int64_t tref_;
   DomainParticipant *dp_;
   Stats stats_;
 };

@@ -17,6 +17,7 @@
 #include "opendds_i11eperf.hpp"
 #include "stats.hpp"
 #include "config.h"
+#include "gettime.h"
 
 using namespace DDS;
 
@@ -34,10 +35,7 @@ template<typename T>
 class L : public DataReaderListener {
 public:
   L(DomainParticipant *dp, std::string statsname) : dp_(dp), stats_(10000000, statsname) {
-    Time_t tref;
-    dp_->get_current_time(tref);
-    tref_s_ = tref.sec;
-    tref_ns_ = tref.nanosec;
+    tref_ = gettime();
   }
   
   virtual void on_data_available(DataReader *wrd)
@@ -46,18 +44,9 @@ public:
     ReturnCode_t rc;
     T x;
     SampleInfo si;
-    if ((rc = rd->take_next_sample(x, si)) == RETCODE_OK) {
-      Time_t tnow;
-      dp_->get_current_time(tnow);
-      const int64_t tnow_s = tnow.sec;
-      const int32_t tnow_ns = tnow.nanosec;
-      if (si.valid_data) {
-        const int64_t s = si.source_timestamp.sec;
-        const int32_t ns = si.source_timestamp.nanosec;
-        stats_.update(x.s, bytes(x),
-                      ((tnow_s - tref_s_) * 1000000000 + tnow_ns - tref_ns_)/1e9,
-                      ((tnow_s - s) * 1000000000 + tnow_ns - ns)/1e9);
-      }
+    if ((rc = rd->take_next_sample(x, si)) == RETCODE_OK && si.valid_data) {
+      int64_t tnow = gettime();
+      stats_.update(x.s, bytes(x), (tnow-tref_)/1e9, (tnow-x.ts)/1e9);
     }
     stats_.report();
   }
@@ -70,8 +59,7 @@ public:
   virtual void on_sample_lost(DataReader *rd, const SampleLostStatus& status) {}
 
 private:
-  int64_t tref_s_;
-  int32_t tref_ns_;
+  int64_t tref_;
   DomainParticipant *dp_;
   Stats stats_;
 };

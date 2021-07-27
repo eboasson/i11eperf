@@ -19,14 +19,13 @@
 #include "bytesize.hpp"
 #include "stats.hpp"
 #include "config.h"
+#include "gettime.h"
 
 template<typename T>
 class L : public dds::sub::NoOpDataReaderListener<T> {
 public:
   L(dds::domain::DomainParticipant& dp, std::string statsname) : dp_(dp), stats_(10000000, statsname) {
-    auto tref = dp_.current_time();
-    tref_s_ = tref.sec();
-    tref_ns_ = tref.nanosec();
+    tref_ = gettime();
   }
   
   virtual void on_data_available(dds::sub::DataReader<T>& rd)
@@ -34,16 +33,10 @@ public:
     unsigned n;
     do {
       n = rd.take(xs_, N);
-      const auto tnow = dp_.current_time();
-      const int64_t tnow_s = tnow.sec();
-      const int32_t tnow_ns = tnow.nanosec();
+      const int64_t tnow = gettime();
       for (unsigned i = 0; i < n; i++) {
         if (xs_[i].info().valid()) {
-          const int64_t s = xs_[i].info().timestamp().sec();
-          const int32_t ns = xs_[i].info().timestamp().nanosec();
-          stats_.update(xs_[i].data().s(), bytes(xs_[i].data()),
-                        ((tnow_s - tref_s_) * 1000000000 + tnow_ns - tref_ns_)/1e9,
-                        ((tnow_s - s) * 1000000000 + tnow_ns - ns)/1e9);
+          stats_.update(xs_[i].data().s(), bytes(xs_[i].data()), (tnow-tref_)/1e9, (tnow-xs_[i].data().ts())/1e9);
         }
       }
     } while (n == N);
@@ -52,8 +45,7 @@ public:
 
 private:
   static const unsigned N = 5;
-  int64_t tref_s_;
-  int32_t tref_ns_;
+  int64_t tref_;
   dds::domain::DomainParticipant& dp_;
   dds::sub::Sample<T> xs_[N];
   Stats stats_;
