@@ -62,7 +62,7 @@ static void sub(dds::domain::DomainParticipant& dp, std::string statsname)
   dds::topic::Topic<T> tp(dp, "Data");
   dds::sub::Subscriber sub(dp);
   dds::sub::qos::DataReaderQos qos;
-  qos << dds::core::policy::Reliability::Reliable(dds::core::Duration::infinite())
+  qos << dds::core::policy::Reliability::Reliable(dds::core::Duration::from_secs(10))
       << dds::core::policy::History::HISTORY_KIND;
   dds::sub::DataReader<T> rd(sub, tp, qos);
 

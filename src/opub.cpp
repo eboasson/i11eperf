@@ -37,6 +37,8 @@ static void pub(DomainParticipant_var dp)
   qos.history.kind = HISTORY_KIND;
   qos.history.depth = HISTORY_DEPTH;
   qos.reliability.kind = RELIABLE_RELIABILITY_QOS;
+  qos.reliability.max_blocking_time.sec = 10;
+  qos.reliability.max_blocking_time.nanosec = 0;
   qos.resource_limits.max_samples = (10 * 1048576) / sizeof(i11eperf::DATATYPE);
   DDS::DataWriter *wrw = pub->create_datawriter(tp, qos, 0, OpenDDS::DCPS::DEFAULT_STATUS_MASK);
   CONCAT(i11eperf::DATATYPE, DataWriter) *wr = NARROW_W(wrw);

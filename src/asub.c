@@ -141,7 +141,7 @@ static void sub (dds_entity_t dp, const char *statsname)
 
   dds_entity_t tp = dds_create_topic (dp, &CONCAT (DATATYPE_C, _desc), "Data", NULL, NULL);
   dds_qos_t *qos = dds_create_qos ();
-  dds_qset_reliability (qos, DDS_RELIABILITY_RELIABLE, DDS_INFINITY);
+  dds_qset_reliability (qos, DDS_RELIABILITY_RELIABLE, DDS_SECS(10));
   dds_qset_history (qos, HISTORY_KIND, HISTORY_DEPTH);
   dds_entity_t rd = dds_create_reader (dp, tp, qos, NULL);
   dds_delete_qos (qos);

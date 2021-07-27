@@ -30,7 +30,7 @@ static void pub (dds_entity_t dp)
 {
   dds_entity_t tp = dds_create_topic (dp, &CONCAT (DATATYPE_C, _desc), "Data", NULL, NULL);
   dds_qos_t *qos = dds_create_qos ();
-  dds_qset_reliability (qos, DDS_RELIABILITY_RELIABLE, DDS_INFINITY);
+  dds_qset_reliability (qos, DDS_RELIABILITY_RELIABLE, DDS_SECS(10));
   dds_qset_history (qos, HISTORY_KIND, HISTORY_DEPTH);
   batching ();
   dds_entity_t wr = dds_create_writer (dp, tp, qos, NULL);

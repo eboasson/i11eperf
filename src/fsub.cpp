@@ -70,6 +70,8 @@ static void sub(DomainParticipant *dp, std::string statsname)
   qos.history().kind = HISTORY_KIND;
   qos.history().depth = HISTORY_DEPTH;
   qos.reliability().kind = RELIABLE_RELIABILITY_QOS;
+  qos.reliability().max_blocking_time.seconds = 10;
+  qos.reliability().max_blocking_time.nanosec = 0;
   auto rd = pub->create_datareader(tp, qos, &l);
 
   signal(SIGTERM, sigh);

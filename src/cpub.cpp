@@ -37,7 +37,7 @@ static void pub(dds::domain::DomainParticipant& dp)
   dds::topic::Topic<T> tp(dp, "Data");
   dds::pub::Publisher pub(dp);
   dds::pub::qos::DataWriterQos qos;
-  qos << dds::core::policy::Reliability::Reliable(dds::core::Duration::infinite())
+  qos << dds::core::policy::Reliability::Reliable(dds::core::Duration::from_secs(10))
       << dds::core::policy::History::HISTORY_KIND;
   batching();
   dds::pub::DataWriter<T> wr(pub, tp, qos);

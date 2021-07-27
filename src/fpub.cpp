@@ -38,6 +38,8 @@ static void pub(DomainParticipant *dp)
   qos.history().kind = HISTORY_KIND;
   qos.history().depth = HISTORY_DEPTH;
   qos.reliability().kind = RELIABLE_RELIABILITY_QOS;
+  qos.reliability().max_blocking_time.seconds = 10;
+  qos.reliability().max_blocking_time.nanosec = 0;
   auto wr = pub->create_datawriter(tp, qos, nullptr);
 
   signal(SIGTERM, sigh);
