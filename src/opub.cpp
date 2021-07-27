@@ -34,6 +34,8 @@ static void pub(DomainParticipant_var dp)
 
   DataWriterQos qos;
   pub->get_default_datawriter_qos(qos);
+  qos.representation.value.length(1);
+  qos.representation.value[0] = DDS::XCDR_DATA_REPRESENTATION;
   qos.history.kind = HISTORY_KIND;
   qos.history.depth = HISTORY_DEPTH;
   qos.reliability.kind = RELIABLE_RELIABILITY_QOS;

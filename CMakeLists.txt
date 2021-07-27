@@ -141,9 +141,8 @@ endif()
 #   - DCPSRTISerialization is needed
 #   - Cyclone needs a patch to also receive on the sockets it uses to transmit
 #     because OpenDDS "knows best" and ignores the locators advertised by Cyclone
-#   - apub -> osub works somewhat, if you have a lot of patience and you enable
-#     tracing on the Cyclone side (presumably because it slows down things a bit)
-#   - opub -> asub doesn't seem to work
+#   - If you have a lot of patience and you enable tracing on the Cyclone side
+#     (presumably because it slows down things a bit) it works
 #   - FastDDS with OpenDDS results in "failed to deserialize data payload for SPDP"
 #     errors from OpenDDS
 find_package(opendds)
