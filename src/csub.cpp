@@ -14,8 +14,12 @@
 #include <chrono>
 #include <thread>
 
+#if CYCLONEDDS
 #include "dds/dds.hpp"
 #include "i11eperf.hpp"
+#elif OPENSPLICE
+#include "i11eperf_s_DCPS.hpp"
+#endif
 #include "bytesize.hpp"
 #include "stats.hpp"
 #include "config.h"

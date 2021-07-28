@@ -15,18 +15,24 @@
 #include <chrono>
 #include <thread>
 
+#if CYCLONEDDS
 #include "dds/dds.hpp"
 #include "i11eperf.hpp"
+#elif OPENSPLICE
+#include "i11eperf_s_DCPS.hpp"
+#endif
 #include "config.h"
 #include "gettime.h"
 
+#if CYCLONEDDS && BATCHING
 #include "dds/dds.h"
 static void batching()
 {
-#if BATCHING
   dds_write_set_batch (true);
-#endif
 }
+#else
+static void batching() {}
+#endif
 
 static volatile sig_atomic_t interrupted = 0;
 static void sigh (int sig __attribute__ ((unused))) { interrupted = 1; }
@@ -50,7 +56,9 @@ static void pub(dds::domain::DomainParticipant& dp)
     wr << sample;
     ++sample.s();
 #if SLEEP_MS != 0
+#if CYCLONEDDS
     dds_write_flush(wr->get_ddsc_entity()); // so we can forget about BATCHING
+#endif
     std::this_thread::sleep_for(std::chrono::milliseconds(SLEEP_MS));
 #endif
   }

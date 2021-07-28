@@ -1,5 +1,5 @@
 #
-# Copyright(c) 2020 ADLINK Technology Limited and others
+# Copyright(c) 2021 ADLINK Technology Limited and others
 #
 # This program and the accompanying materials are made available under the
 # terms of the Eclipse Public License v. 2.0 which is available at
@@ -10,7 +10,19 @@
 # SPDX-License-Identifier: EPL-2.0 OR BSD-3-Clause
 #
 project(i11eperf LANGUAGES C CXX)
-cmake_minimum_required(VERSION 3.17)
+cmake_minimum_required(VERSION 3.17) # not sure what version is actually required
+
+list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+
+set(default_build_type "RelWithDebInfo")
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  message(STATUS "Setting build type to '${default_build_type}' as none was specified.")
+  set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE
+      STRING "Choose the type of build." FORCE)
+  # Set the possible values of build type for cmake-gui
+  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
+    "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+endif()
 
 # Note: "brew --prefix" stuff is for macOS, YMMV
 #
@@ -64,8 +76,9 @@ add_compile_definitions(DATATYPE=${DATATYPE})
 add_compile_definitions(SLEEP_MS=${SLEEP_MS})
 
 ### Cyclone DDS / C -- copy IDL file to avoid name clash with fastddsgen output
-find_package(CycloneDDS)
+find_package(CycloneDDS QUIET)
 if(CycloneDDS_FOUND)
+  message(STATUS "CycloneDDS found")
   add_custom_command(
     OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/i11eperf_a.idl
     COMMAND ${CMAKE_COMMAND} -E copy
@@ -83,8 +96,9 @@ else()
 endif()
 
 ### Cyclone DDS / C++
-find_package(CycloneDDS-CXX)
+find_package(CycloneDDS-CXX QUIET)
 if(CycloneDDS-CXX_FOUND)
+  message(STATUS "CycloneDDS C++ binding found")
   idlcxx_generate(TARGET i11eperf_c FILES idl/i11eperf.idl)
   add_executable(cpub src/cpub.cpp)
   add_executable(csub src/csub.cpp)
@@ -93,12 +107,13 @@ if(CycloneDDS-CXX_FOUND)
   target_link_libraries(cpub i11eperf_c CycloneDDS-CXX::ddscxx)
   target_link_libraries(csub i11eperf_c CycloneDDS-CXX::ddscxx)
 else()
-  message(STATUS "CycloneDDS C++ not found")
+  message(STATUS "CycloneDDS C++ binding not found")
 endif()
 
 ### Fast-DDS
-find_package(fastrtps)
+find_package(fastrtps QUIET)
 if(fastrtps_FOUND)
+  message(STATUS "Fast-DDS found")
   find_package(fastcdr REQUIRED)
   find_package(foonathan_memory REQUIRED)
 
@@ -145,8 +160,9 @@ endif()
 #     (presumably because it slows down things a bit) it works
 #   - FastDDS with OpenDDS results in "failed to deserialize data payload for SPDP"
 #     errors from OpenDDS
-find_package(opendds)
+find_package(opendds QUIET)
 if(OPENDDS_FOUND)
+  message(STATUS "OpenDDS found")
   add_library(i11eperf_o)
   set_property(TARGET i11eperf_o PROPERTY CXX_STANDARD 98)
   OPENDDS_TARGET_SOURCES(i11eperf_o idl/i11eperf.idl)
@@ -167,4 +183,26 @@ if(OPENDDS_FOUND)
             ${CMAKE_CURRENT_BINARY_DIR}/opendds.ini)
 else()
   message(STATUS "OpenDDS not found")
+endif()
+
+### OpenSplice
+find_package(OpenSplice QUIET)
+if(OpenSplice_FOUND)
+  message(STATUS "OpenSplice found")
+  # - need to remove @topic, add #pragma keylist
+  # - renaming to i11eperf_s.idl also addresses file name clashes
+  add_custom_command(
+    OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/i11eperf_s.idl
+    COMMAND gawk
+    ARGS    -f ${CMAKE_SOURCE_DIR}/preproc-ospl-idl.gawk ${CMAKE_SOURCE_DIR}/idl/i11eperf.idl > ${CMAKE_CURRENT_BINARY_DIR}/i11eperf_s.idl
+    DEPENDS ${CMAKE_SOURCE_DIR}/idl/i11eperf.idl ${CMAKE_SOURCE_DIR}/preproc-ospl-idl.gawk)
+  osplidl_generate(i11eperf_s ${CMAKE_CURRENT_BINARY_DIR}/i11eperf_s.idl)
+  add_executable(spub src/cpub.cpp)
+  add_executable(ssub src/csub.cpp)
+  target_compile_definitions(spub PUBLIC OPENSPLICE)
+  target_compile_definitions(ssub PUBLIC OPENSPLICE)
+  target_link_libraries(spub i11eperf_s OpenSplice::cxx)
+  target_link_libraries(ssub i11eperf_s OpenSplice::cxx)
+else()
+  message(STATUS "OpenSplice not found")
 endif()
