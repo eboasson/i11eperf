@@ -1,4 +1,12 @@
 module i11eperf {
+  /* The "ts" field stores a time stamp and is used in lieu of the DDS source timestamp
+     for two reasons:
+
+     - Fast-DDS doesn't support write_w_timestamp
+
+     - All variants have different ideas of the representation of a time stamp,
+       this avoids the need for different conversions in the different cases */
+
   @topic
   struct ou {
     unsigned long long ts;
