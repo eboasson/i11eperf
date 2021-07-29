@@ -35,7 +35,8 @@ struct tslat {
 
 struct Stats {
   int64_t tnext;
-  unsigned count, bytes, lost, errs, nseq;
+  unsigned count, lost, errs, nseq;
+  uint64_t bytes;
   unsigned nlats, nraw, maxraw;
   struct tslat *raw;
   double lats[1000];
@@ -45,7 +46,8 @@ struct Stats {
 static void Stats_init (struct Stats *s, unsigned maxraw, const char *statsname)
 {
   s->tnext = gettime () + DDS_SECS (1);
-  s->count = s->bytes = s->lost = s->errs = s->nlats = s->nraw = 0;
+  s->count = s->lost = s->errs = s->nlats = s->nraw = 0;
+  s->bytes = 0;
   s->nseq = UINT32_MAX;
   s->maxraw = maxraw;
   s->raw = malloc (maxraw * sizeof (*s->raw));
@@ -93,7 +95,7 @@ static void Stats_report (struct Stats *s)
     double dt = (tnow - s->tnext + DDS_SECS (1)) / 1e9;
     double srate = s->count / dt;
     double brate = s->bytes / dt;
-    printf ("%.5f kS/s %.5f Mb/s %u lost %u errs %f us90%%lat\n", (srate * 1e-3), (brate * 8e-6), s->lost, s->errs, 1e6 * ((s->nlats == 0) ? 0 : s->lats[s->nlats - (s->nlats + 9) / 10]));
+    printf ("%.5f kS/s %.5f Gb/s %u lost %u errs %f us90%%lat\n", (srate * 1e-3), (brate * 8e-9), s->lost, s->errs, 1e6 * ((s->nlats == 0) ? 0 : s->lats[s->nlats - (s->nlats + 9) / 10]));
     fflush (stdout);
     s->tnext = tnow + DDS_SECS (1);
     s->count = s->bytes = s->lost = s->nlats = 0;

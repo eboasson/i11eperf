@@ -72,19 +72,21 @@ public:
       double brate = static_cast<double>(bytes_) / dt.count();
       std::cout << std::setprecision(5) << std::setw(7)
                 << (srate * 1e-3) << " kS/s "
-                << (brate * 8e-6) << " Mb/s "
+                << (brate * 8e-9) << " Gb/s "
                 << lost_ << " lost " << errs_ << " errs "
                 << 1e6 * ((nlats_ == 0) ? 0 : lats_[nlats_ - (nlats_ + 9) / 10]) << " us90%lat"
                 << std::endl << std::flush;
       tnext_ = tnow + std::chrono::seconds(1);
-      count_ = bytes_ = lost_ = nlats_ = 0;
+      count_ = lost_ = nlats_ = 0;
+      bytes_ = 0;
     }
   }
 
 private:
   std::chrono::time_point<std::chrono::steady_clock> tnext_;
   std::string statsname_;
-  unsigned count_, bytes_, lost_, errs_, nraw_, maxraw_, nlats_;
+  unsigned count_, lost_, errs_, nraw_, maxraw_, nlats_;
+  uint64_t bytes_;
   uint32_t nseq_;
   tslat *raw_;
   double lats_[1000];
