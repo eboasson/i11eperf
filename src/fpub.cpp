@@ -40,6 +40,7 @@ static void pub(DomainParticipant *dp)
   qos.reliability().kind = RELIABLE_RELIABILITY_QOS;
   qos.reliability().max_blocking_time.seconds = 10;
   qos.reliability().max_blocking_time.nanosec = 0;
+  qos.resource_limits().max_samples = (10 * 1048576) / sizeof(T);
   auto wr = pub->create_datawriter(tp, qos, nullptr);
 
   signal(SIGTERM, sigh);

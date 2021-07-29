@@ -44,6 +44,8 @@ static void pub(dds::domain::DomainParticipant& dp)
   dds::pub::Publisher pub(dp);
   dds::pub::qos::DataWriterQos qos;
   qos << dds::core::policy::Reliability::Reliable(dds::core::Duration::from_secs(10))
+      << dds::core::policy::ResourceLimits((10 * 1048576) / sizeof(T),
+                                           dds::core::LENGTH_UNLIMITED, dds::core::LENGTH_UNLIMITED)
       << dds::core::policy::History::HISTORY_KIND;
   batching();
   dds::pub::DataWriter<T> wr(pub, tp, qos);
