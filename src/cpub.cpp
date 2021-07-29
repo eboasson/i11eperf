@@ -26,12 +26,11 @@
 
 #if CYCLONEDDS && BATCHING
 #include "dds/dds.h"
-static void batching()
-{
-  dds_write_set_batch (true);
-}
+static void batching() { dds_write_set_batch (true); }
+template<typename T> static void flush(dds::pub::DataWriter<T>& wr) { dds_write_flush(wr->get_ddsc_entity()); }
 #else
 static void batching() {}
+template<typename T> static void flush(dds::pub::DataWriter<T>&) {}
 #endif
 
 static volatile sig_atomic_t interrupted = 0;
@@ -58,9 +57,7 @@ static void pub(dds::domain::DomainParticipant& dp)
     wr << sample;
     ++sample.s();
 #if SLEEP_MS != 0
-#if CYCLONEDDS
-    dds_write_flush(wr->get_ddsc_entity()); // so we can forget about BATCHING
-#endif
+    flush(wr); // so we can forget about BATCHING
     std::this_thread::sleep_for(std::chrono::milliseconds(SLEEP_MS));
 #endif
   }
