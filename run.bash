@@ -1,7 +1,7 @@
 trap 'kill -9 $pids ; exit 1' SIGINT
 
 function doit () {
-    for x in a c f o ; do
+    for x in a c f o s ; do
         xargs=""
         [ "$x" = "o" ] && xargs="-DCPSConfigFile ../opendds.ini"
         if [ -x ${x}pub -a -x ${x}sub ] ; then
@@ -10,7 +10,9 @@ function doit () {
                 c) echo "# Cyclone DDS - C++" ;;
                 f) echo "# Fast-DDS" ;;
                 o) echo "# OpenDDS" ;;
+                s) echo "# OpenSplice" ;;
             esac
+            [ $x = s ] && ospl start
             ./${x}sub $xargs & pids=$!
             ./${x}pub $xargs & pids="$pids $!"
             sleep 20
@@ -20,6 +22,7 @@ function doit () {
                 kill $pids
             fi
             wait
+            [ $x = s ] && ospl stop
         fi
     done
 }
@@ -43,10 +46,10 @@ for cfg in "-DSHM=1 -DBATCHING=0 -DSLEEP_MS=0 -DKEEP_ALL=1" \
            "-DSHM=1 -DBATCHING=0 -DSLEEP_MS=1 -DKEEP_ALL=0" \
            "-DSHM=1 -DBATCHING=1 -DSLEEP_MS=0 -DKEEP_ALL=1" \
            "-DSHM=0 -DBATCHING=1 -DSLEEP_MS=0 -DKEEP_ALL=1" ; do
-    for size in 128 1024 1M ; do
-        fullcfg="-DDATATYPE=a$size $cfg"
+    for datatype in ou a128 a1024 a64k a1M ; do
+        fullcfg="-DDATATYPE=$datatype $cfg"
         echo "#### $fullcfg"
-        cmake $fullcfg .
+        cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo $fullcfg .
         ninja
         doit
     done
