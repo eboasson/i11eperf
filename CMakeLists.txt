@@ -114,33 +114,33 @@ endif()
 find_package(fastrtps QUIET)
 if(fastrtps_FOUND)
   message(STATUS "Fast-DDS found")
-  find_package(fastcdr REQUIRED)
-  find_package(foonathan_memory REQUIRED)
-
-  # Assuming FastDDS was built using colcon, with or without --merge-install
-  find_file(fastddsgen_LOC fastddsgen HINTS
+  # Assuming FastDDS was built using colcon as described in the Fast-DDS docs
+  # we can make a reasonable guess at the location of fastddsgen
+  # (this is with or without the "--merge-install" option of colcon)
+  find_file(fastddsgen fastddsgen HINTS
     ${fastrtps_DIR}/../../../../../src/fastddsgen/scripts
     ${fastrtps_DIR}/../../../../src/fastddsgen/scripts)
-  if(fastddsgen_LOC STREQUAL "fastddsgen_LOC-NOTFOUND")
-    message(FATAL_ERROR "fastddsgen not found, try setting fastddsgen_LOC (fastrtps_DIR = ${fastrtps_DIR})")
+  if(fastddsgen STREQUAL "fastddsgen-NOTFOUND")
+    message(WARNING "Fast-DDS found, but fastddsgen not found, skipping Fast-DDS.
+  fastrtps_DIR = ${fastrtps_DIR}
+  try cmake -Dfastddsgen=PATH-TO-FASTDDSGEN")
+  else()
+    set(fidlgen i11eperf.cxx i11eperf.h i11eperfPubSubTypes.cxx i11eperfPubSubTypes.h)
+    list(TRANSFORM fidlgen PREPEND "${CMAKE_CURRENT_BINARY_DIR}/")
+    add_custom_command(
+      OUTPUT  ${fidlgen}
+      COMMAND "${fastddsgen}"
+      ARGS    -replace "${CMAKE_CURRENT_LIST_DIR}/idl/i11eperf.idl"
+      DEPENDS "${CMAKE_CURRENT_LIST_DIR}/idl/i11eperf.idl")
+    add_library(i11eperf_f STATIC ${fidlgen})
+    target_include_directories(i11eperf_f PUBLIC "${CMAKE_CURRENT_BINARY_DIR}" "${fastrtps_INCLUDE_DIR}" "${fastcdr_INCLUDE_DIR}")
+    add_executable(fpub src/fpub.cpp src/fcommon.cpp i11eperf.h)
+    add_executable(fsub src/fsub.cpp src/fcommon.cpp i11eperf.h)
+    target_compile_definitions(fpub PUBLIC FASTDDS)
+    target_compile_definitions(fsub PUBLIC FASTDDS)
+    target_link_libraries(fpub i11eperf_f fastrtps fastcdr foonathan_memory)
+    target_link_libraries(fsub i11eperf_f fastrtps fastcdr foonathan_memory)
   endif()
-  #message(STATUS "fastddsgen = ${fastddsgen_LOC}")
-
-  set(fidlgen i11eperf.cxx i11eperf.h i11eperfPubSubTypes.cxx i11eperfPubSubTypes.h)
-  list(TRANSFORM fidlgen PREPEND "${CMAKE_CURRENT_BINARY_DIR}/")
-  add_custom_command(
-    OUTPUT  ${fidlgen}
-    COMMAND "${fastddsgen_LOC}"
-    ARGS    -replace "${CMAKE_CURRENT_LIST_DIR}/idl/i11eperf.idl"
-    DEPENDS "${CMAKE_CURRENT_LIST_DIR}/idl/i11eperf.idl")
-  add_library(i11eperf_f STATIC ${fidlgen})
-  target_include_directories(i11eperf_f PUBLIC "${CMAKE_CURRENT_BINARY_DIR}" "${fastrtps_INCLUDE_DIR}" "${fastcdr_INCLUDE_DIR}")
-  add_executable(fpub src/fpub.cpp src/fcommon.cpp i11eperf.h)
-  add_executable(fsub src/fsub.cpp src/fcommon.cpp i11eperf.h)
-  target_compile_definitions(fpub PUBLIC FASTDDS)
-  target_compile_definitions(fsub PUBLIC FASTDDS)
-  target_link_libraries(fpub i11eperf_f fastrtps fastcdr foonathan_memory)
-  target_link_libraries(fsub i11eperf_f fastrtps fastcdr foonathan_memory)
 else()
   message(STATUS "Fast-DDS not found")
 endif()
