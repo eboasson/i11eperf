@@ -67,6 +67,8 @@ static void sub(dds::domain::DomainParticipant& dp, std::string statsname)
   dds::sub::Subscriber sub(dp);
   dds::sub::qos::DataReaderQos qos;
   qos << dds::core::policy::Reliability::Reliable(dds::core::Duration::from_secs(10))
+      << dds::core::policy::ResourceLimits((10 * 1048576) / sizeof(T),
+                                           dds::core::LENGTH_UNLIMITED, dds::core::LENGTH_UNLIMITED)
       << dds::core::policy::History::HISTORY_KIND;
   dds::sub::DataReader<T> rd(sub, tp, qos);
 

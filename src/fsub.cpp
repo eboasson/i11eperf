@@ -72,6 +72,7 @@ static void sub(DomainParticipant *dp, std::string statsname)
   qos.reliability().kind = RELIABLE_RELIABILITY_QOS;
   qos.reliability().max_blocking_time.seconds = 10;
   qos.reliability().max_blocking_time.nanosec = 0;
+  qos.resource_limits().max_samples = (10 * 1048576) / sizeof(T);
   auto rd = pub->create_datareader(tp, qos, &l);
 
   signal(SIGTERM, sigh);

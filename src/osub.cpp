@@ -84,6 +84,7 @@ static void sub(DomainParticipant *dp, std::string statsname)
   qos.reliability.kind = RELIABLE_RELIABILITY_QOS;
   qos.reliability.max_blocking_time.sec = 10;
   qos.reliability.max_blocking_time.nanosec = 0;
+  qos.resource_limits.max_samples = (10 * 1048576) / sizeof(T);
   DDS::DataReader *rdw = sub->create_datareader(tp, qos, &l, OpenDDS::DCPS::DEFAULT_STATUS_MASK);
   CONCAT(i11eperf::DATATYPE, DataReader) *rd = NARROW_R(rdw);
 
