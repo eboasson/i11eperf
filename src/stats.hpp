@@ -13,9 +13,10 @@
 #define STATS_HPP
 
 #include <iostream>
-#include<fstream>
+#include <fstream>
 #include <iomanip>
 #include <chrono>
+#include <algorithm>
 
 struct tslat {
   double t, l;
