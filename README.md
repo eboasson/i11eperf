@@ -31,7 +31,7 @@ CMake options are used to configure the benchmark:
   The intent was for there to be nothing but the sequence number `s`, but it turns out that Fast-DDS doesn't support the `write_w_timestamp` operation and so a source timestamp had to be added to the data out of necessity.
   * `a32`: a 32-bytes large data type by appending a 20-bytes large octet array to `ou`
   * `a128`: a 128-bytes large one, analogous to `a32`
-  * `a1024`, `a48k`, `a64k`, `a1M`: analogous to `a32` and `a128`
+  * `a1024`, `a16k`, `a48k`, `a64k`, `a1M`, `a2M`, `a4M`, `a8M`: analogous to `a32` and `a128`
 * `SLEEP_MS` integer (`0`): the number of milliseconds to sleep between publications
 
 The defaults are in parenthesis and correspond to an out-of-the-box throughput test with 1024-byte large samples. OpenDDS requires an initialization file or it won't use the interoperable DDSI protocol, this is copied into the build directly and used automatically.
