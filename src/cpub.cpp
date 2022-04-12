@@ -36,6 +36,8 @@ template<typename T> static void flush(dds::pub::DataWriter<T>&) {}
 static volatile sig_atomic_t interrupted = 0;
 static void sigh (int sig __attribute__ ((unused))) { interrupted = 1; }
 
+static DATATYPE_CPP sample;
+
 template<typename T>
 static void pub(dds::domain::DomainParticipant& dp)
 {
@@ -50,7 +52,6 @@ static void pub(dds::domain::DomainParticipant& dp)
   dds::pub::DataWriter<T> wr(pub, tp, qos);
 
   signal(SIGTERM, sigh);
-  T sample{};
   while (!interrupted)
   {
     sample.ts() = gettime();

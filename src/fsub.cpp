@@ -35,8 +35,8 @@ public:
   
   void on_data_available(DataReader *rd)
   {
+    static T x; // should be safe to make it static, large samples won't fit on stack
     ReturnCode_t rc;
-    T x;
     SampleInfo si;
     if ((rc = rd->take_next_sample(&x, &si)) == ReturnCode_t::RETCODE_OK && si.valid_data) {
       const int64_t tnow = gettime();

@@ -26,6 +26,8 @@ static void batching ()
 static volatile sig_atomic_t interrupted = 0;
 static void sigh (int sig __attribute__ ((unused))) { interrupted = 1; }
 
+static DATATYPE_C sample;
+
 static void pub (dds_entity_t dp)
 {
   dds_entity_t tp = dds_create_topic (dp, &CONCAT (DATATYPE_C, _desc), "Data", NULL, NULL);
@@ -38,8 +40,6 @@ static void pub (dds_entity_t dp)
   dds_delete_qos (qos);
 
   signal (SIGTERM, sigh);
-  DATATYPE_C sample;
-  memset (&sample, 0, sizeof (sample));
   while (!interrupted)
   {
     sample.ts = gettime ();
