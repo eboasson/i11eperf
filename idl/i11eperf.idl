@@ -41,6 +41,13 @@ module i11eperf {
   };
 
   @topic @final @data_representation(XCDR1)
+  struct a16k {
+    unsigned long long ts;
+    unsigned long s;
+    octet xary[16*1024 - 12];
+  };
+
+  @topic @final @data_representation(XCDR1)
   struct a48k {
     unsigned long long ts;
     unsigned long s;
@@ -59,6 +66,27 @@ module i11eperf {
     unsigned long long ts;
     unsigned long s;
     octet xary[1024*1024 - 12];
+  };
+
+  @topic @final @data_representation(XCDR1)
+  struct a2M {
+    unsigned long long ts;
+    unsigned long s;
+    octet xary[2*1024*1024 - 12];
+  };
+
+  @topic @final @data_representation(XCDR1)
+  struct a4M {
+    unsigned long long ts;
+    unsigned long s;
+    octet xary[4*1024*1024 - 12];
+  };
+
+  @topic @final @data_representation(XCDR1)
+  struct a8M {
+    unsigned long long ts;
+    unsigned long s;
+    octet xary[8*1024*1024 - 12];
   };
 
   @topic @final @data_representation(XCDR1)

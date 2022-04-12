@@ -60,8 +60,12 @@ TT(ou);
 TT(a32);
 TT(a128);
 TT(a1024);
+TT(a16k);
 TT(a48k);
 TT(a64k);
 TT(a1M);
+TT(a2M);
+TT(a4M);
+TT(a8M);
 
 #endif
