@@ -24,6 +24,8 @@ using namespace DDS;
 static volatile sig_atomic_t interrupted = 0;
 static void sigh (int sig __attribute__ ((unused))) { interrupted = 1; }
 
+static DATATYPE_CPP sample;
+
 template<typename T>
 static void pub(DomainParticipant_var dp)
 {
@@ -50,7 +52,6 @@ static void pub(DomainParticipant_var dp)
   CONCAT(i11eperf::DATATYPE, DataWriter) *wr = NARROW_W(wrw);
 
   signal(SIGTERM, sigh);
-  T sample;
   while (!interrupted)
   {
     sample.ts = gettime();

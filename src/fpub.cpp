@@ -26,6 +26,8 @@ using namespace eprosima::fastdds::rtps;
 static volatile sig_atomic_t interrupted = 0;
 static void sigh (int sig __attribute__ ((unused))) { interrupted = 1; }
 
+static DATATYPE_CPP sample;
+
 template<typename T>
 static void pub(DomainParticipant *dp)
 {
@@ -44,7 +46,6 @@ static void pub(DomainParticipant *dp)
   auto wr = pub->create_datawriter(tp, qos, nullptr);
 
   signal(SIGTERM, sigh);
-  T sample{};
   while (!interrupted)
   {
     sample.ts() = gettime();
