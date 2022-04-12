@@ -95,7 +95,14 @@ static void Stats_report (struct Stats *s)
     double dt = (tnow - s->tnext + DDS_SECS (1)) / 1e9;
     double srate = s->count / dt;
     double brate = s->bytes / dt;
-    printf ("%.5f kS/s %.5f Gb/s %u lost %u errs %f us90%%lat\n", (srate * 1e-3), (brate * 8e-9), s->lost, s->errs, 1e6 * ((s->nlats == 0) ? 0 : s->lats[s->nlats - (s->nlats + 9) / 10]));
+    double meanlat = 0.0;
+    if (s->nlats > 0)
+    {
+      for (unsigned i = 0; i < s->nlats; i++)
+        meanlat += s->lats[i];
+      meanlat /= s->nlats;
+    }
+    printf ("%.5f kS/s %.5f Gb/s lost %u errs %u usmeanlat %f us90%%lat %f\n", (srate * 1e-3), (brate * 8e-9), s->lost, s->errs, 1e6 * meanlat, 1e6 * ((s->nlats == 0) ? 0 : s->lats[s->nlats - (s->nlats + 9) / 10]));
     fflush (stdout);
     s->tnext = tnow + DDS_SECS (1);
     s->count = s->bytes = s->lost = s->nlats = 0;
