@@ -71,11 +71,19 @@ public:
       std::chrono::duration<double> dt = tnow - tnext_ + std::chrono::seconds(1);
       double srate = static_cast<double>(count_) / dt.count();
       double brate = static_cast<double>(bytes_) / dt.count();
+      double meanlat = 0.0;
+      if (nlats_ > 0)
+      {
+        for (unsigned i = 0; i < nlats_; i++)
+          meanlat += lats_[i];
+        meanlat /= nlats_;
+      }
       std::cout << std::setprecision(5) << std::setw(7)
                 << (srate * 1e-3) << " kS/s "
                 << (brate * 8e-9) << " Gb/s "
-                << lost_ << " lost " << errs_ << " errs "
-                << 1e6 * ((nlats_ == 0) ? 0 : lats_[nlats_ - (nlats_ + 9) / 10]) << " us90%lat"
+                << "lost " << lost_ << " errs " << errs_
+                << " usmeanlat " << 1e6 * meanlat
+                << " us90%lat " << 1e6 * ((nlats_ == 0) ? 0 : lats_[nlats_ - (nlats_ + 9) / 10])
                 << std::endl << std::flush;
       tnext_ = tnow + std::chrono::seconds(1);
       count_ = lost_ = nlats_ = 0;
