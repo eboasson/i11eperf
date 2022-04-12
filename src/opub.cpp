@@ -31,9 +31,13 @@ static void pub(DomainParticipant_var dp)
   ts->register_type(dp, "");
   DDS::Publisher *pub = dp->create_publisher(PUBLISHER_QOS_DEFAULT, 0, OpenDDS::DCPS::DEFAULT_STATUS_MASK);
   DDS::Topic *tp = dp->create_topic("Data", ts->get_type_name(), TOPIC_QOS_DEFAULT, 0, OpenDDS::DCPS::DEFAULT_STATUS_MASK);
-
   DataWriterQos qos;
   pub->get_default_datawriter_qos(qos);
+  // one would think that setting data_representation on the type would suffice, but no:
+  // - without data_representation and qos.representation, we get XCDR2
+  // - with only data_representation, the call to create_datawriter fails
+  // - with only qos.representation, we get what we want
+  // - with data_representation and qos.representation, we get what we want
   qos.representation.value.length(1);
   qos.representation.value[0] = DDS::XCDR_DATA_REPRESENTATION;
   qos.history.kind = HISTORY_KIND;

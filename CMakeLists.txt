@@ -147,10 +147,10 @@ endif()
 
 ### OpenDDS
 #
-# - use C++98 because on macOS at least the generated code depends on some template
-#   that in the OpenDDS binaries comes from the __1 namespace (I guess that's TR1),
-#   but that the application expects to come from the std namespace when built with
-#   C++11 or later
+# - may need to use C++98 because on macOS at least the generated code depends on
+#   some template that in the OpenDDS binaries comes from the __1 namespace (I
+#   guess that's TR1), but that the application expects to come from the std
+#   namespace when built with C++11 or later
 #
 # - interoperability is really problematic ...
 #   - DCPSRTISerialization is needed
@@ -160,12 +160,23 @@ endif()
 #     (presumably because it slows down things a bit) it works
 #   - FastDDS with OpenDDS results in "failed to deserialize data payload for SPDP"
 #     errors from OpenDDS
+#   - -Gxtypes-complete: following XTypes 7.6.3.2.1:
+#       "The field complete.typeid_with_size shall contain the COMPLETE Hash
+#       TypeIdentifier of the TopicType and the serialized size of the associated
+#       TypeObject."
+#     Cyclone DDS requires that both MINIMAL and COMPLETE type identifiers are
+#     present, or neither are.  OpenDDS requires an IDL compiler option for that.
+#   - -Ddata_representation=::OpenDDS::data_representation: OpenDDS IDL compiler
+#     gives an error for @data_representation defined in XTypes 7.3.1.2.1.15 but
+#     has a seemingly equivalent thing in an OpenDDS module
 find_package(OpenDDS QUIET)
 if(OPENDDS_FOUND)
   message(STATUS "OpenDDS found")
   add_library(i11eperf_o)
   #set_property(TARGET i11eperf_o PROPERTY CXX_STANDARD 98)
-  OPENDDS_TARGET_SOURCES(i11eperf_o idl/i11eperf.idl)
+  OPENDDS_TARGET_SOURCES(i11eperf_o idl/i11eperf.idl OPENDDS_IDL_OPTIONS
+    -Gxtypes-complete
+    -Ddata_representation=::OpenDDS::data_representation)
   target_link_libraries(i11eperf_o OpenDDS::Dcps)
   add_executable(opub src/opub.cpp)
   add_executable(osub src/osub.cpp)
