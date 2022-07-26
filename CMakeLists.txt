@@ -154,8 +154,6 @@ endif()
 #
 # - interoperability is really problematic ...
 #   - DCPSRTISerialization is needed
-#   - Cyclone needs a patch to also receive on the sockets it uses to transmit
-#     because OpenDDS "knows best" and ignores the locators advertised by Cyclone
 #   - If you have a lot of patience and you enable tracing on the Cyclone side
 #     (presumably because it slows down things a bit) it works
 #   - FastDDS with OpenDDS results in "failed to deserialize data payload for SPDP"
