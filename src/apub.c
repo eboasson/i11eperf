@@ -42,9 +42,9 @@ static void pub (dds_entity_t dp)
   signal (SIGTERM, sigh);
   while (!interrupted)
   {
-    sample.ts = gettime ();
+    //sample.ts = gettime ();
     dds_write (wr, &sample);
-    ++sample.s;
+    //++sample.s;
 #if SLEEP_MS != 0
     dds_write_flush (wr); // just so we don't have to worry about BATCHING
     dds_sleepfor (DDS_MSECS (SLEEP_MS));

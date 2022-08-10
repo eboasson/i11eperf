@@ -117,6 +117,7 @@ static void Stats_fini (struct Stats *s)
     fwrite (s->raw, sizeof (s->raw[0]), s->nraw, fp);
     fclose (fp);
   }
+  free (s->raw);
 }
 
 static DATATYPE_C xs[5];
@@ -134,7 +135,7 @@ static void on_data_available(dds_entity_t rd, void *varg)
     int64_t tnow = gettime ();
     for (int i = 0; i < n; i++)
       if (si[i].valid_data)
-        Stats_update(stats, xs[i].s, bytes(&xs[i]), (tnow - tref) / 1e9, (tnow - xs[i].ts) / 1e9);
+        ;//Stats_update(stats, xs[i].s, bytes(&xs[i]), (tnow - tref) / 1e9, (tnow - xs[i].ts) / 1e9);
   } while (n == N);
   Stats_report (stats);
 }
@@ -153,6 +154,8 @@ static void sub (dds_entity_t dp, const char *statsname)
   dds_qset_reliability (qos, DDS_RELIABILITY_RELIABLE, DDS_SECS(10));
   dds_qset_resource_limits (qos, (10 * 1048576) / sizeof (DATATYPE_C), DDS_LENGTH_UNLIMITED, DDS_LENGTH_UNLIMITED);
   dds_qset_history (qos, HISTORY_KIND, HISTORY_DEPTH);
+  if (*statsname)
+    dds_qset_durability (qos, DDS_DURABILITY_TRANSIENT_LOCAL);
   dds_entity_t rd = dds_create_reader (dp, tp, qos, NULL);
   dds_delete_qos (qos);
 

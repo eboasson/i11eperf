@@ -95,4 +95,52 @@ module i11eperf {
     unsigned long s;
     sequence<octet> xseq;
   };
+
+  ///////////
+
+//module u {
+//  module s {
+      const string SERVICEINFO_TOPIC_NAME = "SERVICEINFO";
+      typedef string<20> ServiceVersion_t;
+      typedef unsigned short ServiceType_t;
+      typedef string<32> HostName_t;
+      typedef unsigned short  Port_t;
+
+      enum ServiceState_t {
+        SA,
+        SB,
+        SC
+      };
+
+      @nested @appendable
+      struct GUID_t {
+        unsigned long data1;
+        unsigned long data2;
+      };
+
+      typedef double WGS84Coordinate_t;
+
+      @nested @appendable
+      struct WGS84Position2D_t {
+        WGS84Coordinate_t latitude;
+        WGS84Coordinate_t longitude;
+      };
+
+      @topic 
+      @appendable
+      struct ServiceInfo {
+        @key GUID_t       id;
+        ServiceType_t       type;
+        ServiceVersion_t        version;
+        WGS84Position2D_t       location;
+        HostName_t              name;
+        HostName_t              hostname;
+            
+        // this enum fails
+        ServiceState_t          state;
+            
+        Port_t                  monitorPort;
+      };
+//  };
+//};
 };

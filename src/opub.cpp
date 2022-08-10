@@ -40,10 +40,13 @@ static void pub(DomainParticipant_var dp)
   // - with only data_representation, the call to create_datawriter fails
   // - with only qos.representation, we get what we want
   // - with data_representation and qos.representation, we get what we want
-  qos.representation.value.length(1);
-  qos.representation.value[0] = DDS::XCDR_DATA_REPRESENTATION;
+  //qos.representation.value.length(1);
+  //qos.representation.value[0] = DDS::XCDR2_DATA_REPRESENTATION;
   qos.history.kind = HISTORY_KIND;
   qos.history.depth = HISTORY_DEPTH;
+  qos.durability.kind = TRANSIENT_LOCAL_DURABILITY_QOS;
+  qos.durability_service.history_kind = HISTORY_KIND;
+  qos.durability_service.history_depth = HISTORY_DEPTH;
   qos.reliability.kind = RELIABLE_RELIABILITY_QOS;
   qos.reliability.max_blocking_time.sec = 10;
   qos.reliability.max_blocking_time.nanosec = 0;
@@ -54,9 +57,9 @@ static void pub(DomainParticipant_var dp)
   signal(SIGTERM, sigh);
   while (!interrupted)
   {
-    sample.ts = gettime();
+    //sample.ts = gettime();
     wr->write(sample, HANDLE_NIL);
-    ++sample.s;
+    //++sample.s;
 #if SLEEP_MS != 0
     std::this_thread::sleep_for(std::chrono::milliseconds(SLEEP_MS));
 #endif
