@@ -61,7 +61,7 @@ static void sigh (int sig __attribute__ ((unused))) { interrupted = 1; }
 template<typename T>
 static void sub(dds::domain::DomainParticipant& dp, std::string statsname)
 {
-  L<T> l(dp, statsname);
+  L<T>* l = new L<T>(dp, statsname);
 
   dds::topic::Topic<T> tp(dp, "Data");
   dds::sub::Subscriber sub(dp);
@@ -72,7 +72,7 @@ static void sub(dds::domain::DomainParticipant& dp, std::string statsname)
       << dds::core::policy::History::HISTORY_KIND;
   dds::sub::DataReader<T> rd(sub, tp, qos);
 
-  rd.listener(&l, dds::core::status::StatusMask::data_available());
+  rd.listener(l, dds::core::status::StatusMask::data_available());
   signal(SIGTERM, sigh);
   while (!interrupted)
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
