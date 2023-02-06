@@ -91,6 +91,12 @@ if(CycloneDDS_FOUND)
   target_compile_definitions(asub PUBLIC CYCLONEDDS)
   target_link_libraries(apub i11eperf_a CycloneDDS::ddsc)
   target_link_libraries(asub i11eperf_a CycloneDDS::ddsc)
+  add_custom_target(roudi_toml ALL)
+  add_custom_command(
+    TARGET roudi_toml POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_CURRENT_LIST_DIR}/roudi.toml
+            ${CMAKE_CURRENT_BINARY_DIR}/roudi.toml)
 else()
   message(STATUS "CycloneDDS not found")
 endif()
