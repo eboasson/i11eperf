@@ -14,7 +14,7 @@ if $jiggle ; then
 fi
 
 CYCLONEDDS_URI_INIT="$CYCLONEDDS_URI"
-echo '{ "cyc c (a)", "cyc+iox c (a)", "cyc c++ (c)", "cyc+iox c++ (c)", "cyc c++ loan (cl)", "cyc+iox c++ loan (cl)", "fast (f)" }' | \
+echo '{ "cyc c (a)", "cyc+iox c (a)", "cyc c++ (c)", "cyc+iox c++ (c)", "cyc+iox c++ loan (cl)", "fast (f)" }' | \
     tee result.m
 for batching in 0 ; do
     for datatype in a1024 a16k a48k a64k a1M a2M a4M a8M ; do

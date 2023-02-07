@@ -30,6 +30,13 @@ eprosima::fastdds::dds::DomainParticipant *make_participant()
   auto udp_transport = std::make_shared<UDPv4TransportDescriptor>();
   //udp_transport->interfaceWhiteList.push_back("127.0.0.1");
   pqos.transport().user_transports.push_back(udp_transport);
+#else
+  pqos.transport().use_builtin_transports = false;
+  auto udp_transport = std::make_shared<UDPv4TransportDescriptor>();
+  udp_transport->interfaceWhiteList.push_back("127.0.0.1");
+  pqos.transport().user_transports.push_back(udp_transport);
+  auto shm_transport = std::make_shared<SharedMemTransportDescriptor>();
+  pqos.transport().user_transports.push_back(shm_transport);
 #endif
   return DomainParticipantFactory::get_instance()->create_participant(0, pqos);
 }
