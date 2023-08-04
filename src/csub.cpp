@@ -13,6 +13,8 @@
 #include <csignal>
 #include <chrono>
 #include <thread>
+#include <array>
+#include <span>
 
 #if CYCLONEDDS
 #include "dds/dds.hpp"
@@ -34,24 +36,32 @@ public:
   
   virtual void on_data_available(dds::sub::DataReader<T>& rd)
   {
+#if ! LOANS
     unsigned n;
     do {
-      n = rd.take(xs_, N);
+      n = rd.take(xs_.data(), static_cast<uint32_t>(xs_.size()));
+      auto xs = std::span(xs_).subspan(0, n);
+#else
+      dds::sub::LoanedSamples<T> xs = rd.take();
+#endif
       const int64_t tnow = gettime();
-      for (unsigned i = 0; i < n; i++) {
-        if (xs_[i].info().valid()) {
-          stats_.update(xs_[i].data().s(), bytes(xs_[i].data()), (tnow-tref_)/1e9, (tnow-xs_[i].data().ts())/1e9);
+      for (const auto& x : xs) {
+        if (x.info().valid()) {
+          stats_.update(x.data().s(), bytes(x.data()), (tnow-tref_)/1e9, (tnow-x.data().ts())/1e9);
         }
       }
-    } while (n == N);
+#if ! LOANS
+    } while (n == xs_.size());
+#endif
     stats_.report();
   }
 
 private:
-  static const unsigned N = 5;
+#if ! LOANS
+  std::array<dds::sub::Sample<T>, 5> xs_;
+#endif
   int64_t tref_;
   dds::domain::DomainParticipant& dp_;
-  dds::sub::Sample<T> xs_[N];
   Stats stats_;
 };
 
@@ -62,17 +72,23 @@ template<typename T>
 static void sub(dds::domain::DomainParticipant& dp, std::string statsname)
 {
   L<T>* l = new L<T>(dp, statsname);
+  std::vector<dds::sub::DataReader<T>> rds;
 
-  dds::topic::Topic<T> tp(dp, "Data");
-  dds::sub::Subscriber sub(dp);
-  dds::sub::qos::DataReaderQos qos;
-  qos << dds::core::policy::Reliability::Reliable(dds::core::Duration::from_secs(10))
-      << dds::core::policy::ResourceLimits((10 * 1048576) / sizeof(T),
-                                           dds::core::LENGTH_UNLIMITED, dds::core::LENGTH_UNLIMITED)
-      << dds::core::policy::History::HISTORY_KIND;
-  dds::sub::DataReader<T> rd(sub, tp, qos);
+  for (int i = 0; i < NTOPICS; i++) {
+    std::string name = "Data";
+    if (i > 0) name += std::to_string(i);
+    dds::topic::Topic<T> tp(dp, name);
+    dds::sub::Subscriber sub(dp);
+    dds::sub::qos::DataReaderQos qos;
+    qos << dds::core::policy::Reliability::Reliable(dds::core::Duration::from_secs(10))
+    << dds::core::policy::ResourceLimits((10 * 1048576) / sizeof(T),
+                                         dds::core::LENGTH_UNLIMITED, dds::core::LENGTH_UNLIMITED)
+    << dds::core::policy::History::HISTORY_KIND;
+    dds::sub::DataReader<T> rd(sub, tp, qos);
+    rd.listener(l, dds::core::status::StatusMask::data_available());
+    rds.push_back(rd);
+  }
 
-  rd.listener(l, dds::core::status::StatusMask::data_available());
   signal(SIGTERM, sigh);
   while (!interrupted)
     std::this_thread::sleep_for(std::chrono::milliseconds(100));

@@ -15,6 +15,10 @@
 #define BATCHING 1
 #endif
 
+#ifndef NTOPICS
+#define NTOPICS 1
+#endif
+
 #define CONCAT1(a,b) a##b
 #define CONCAT(a,b) CONCAT1(a,b)
 

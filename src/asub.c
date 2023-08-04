@@ -86,7 +86,7 @@ static int double_cmp (const void *va, const void *vb)
   return (*a == *b) ? 0 : (*a < *b) ? -1 : 1;
 }
 
-static void Stats_report (struct Stats *s)
+static void Stats_report (struct Stats *s, int j)
 {
   int64_t tnow = gettime ();
   if (tnow > s->tnext)
@@ -119,24 +119,25 @@ static void Stats_fini (struct Stats *s)
   }
 }
 
-static DATATYPE_C xs[5];
-static dds_sample_info_t si[sizeof (xs) / sizeof (xs[0])];
-static void *ptrs[sizeof (xs) / sizeof (xs[0])];
+static struct Stats stats;
+static DATATYPE_C xs[NTOPICS][5];
+static dds_sample_info_t si[NTOPICS][sizeof (xs[0]) / sizeof (xs[0][0])];
+static void *ptrs[NTOPICS][sizeof (xs[0]) / sizeof (xs[0][0])];
 static int64_t tref;
 
 static void on_data_available(dds_entity_t rd, void *varg)
 {
-  const int N = (int) (sizeof (xs) / sizeof (xs[0]));
-  struct Stats * const stats = varg;
+  const int j = (int) (uintptr_t) varg;
+  const int N = (int) (sizeof (xs[j]) / sizeof (xs[j][0]));
   int n;
   do {
-    n = dds_take(rd, ptrs, si, N, N);
+    n = dds_take(rd, ptrs[j], si[j], N, N);
     int64_t tnow = gettime ();
     for (int i = 0; i < n; i++)
-      if (si[i].valid_data)
-        Stats_update(stats, xs[i].s, bytes(&xs[i]), (tnow - tref) / 1e9, (tnow - xs[i].ts) / 1e9);
+      if (si[j][i].valid_data)
+        Stats_update(&stats, xs[j][i].s, bytes(&xs[j][i]), (tnow - tref) / 1e9, (tnow - xs[j][i].ts) / 1e9);
   } while (n == N);
-  Stats_report (stats);
+  Stats_report (&stats, j);
 }
 
 static volatile sig_atomic_t interrupted = 0;
@@ -144,32 +145,38 @@ static void sigh (int sig __attribute__ ((unused))) { interrupted = 1; }
 
 static void sub (dds_entity_t dp, const char *statsname)
 {
-  struct Stats stats;
-  Stats_init (&stats, 10000000, statsname);
   tref = gettime ();
+  Stats_init (&stats, 10000000, statsname);
 
-  dds_entity_t tp = dds_create_topic (dp, &CONCAT (DATATYPE_C, _desc), "Data", NULL, NULL);
-  dds_qos_t *qos = dds_create_qos ();
-  dds_qset_reliability (qos, DDS_RELIABILITY_RELIABLE, DDS_SECS(10));
-  dds_qset_resource_limits (qos, (10 * 1048576) / sizeof (DATATYPE_C), DDS_LENGTH_UNLIMITED, DDS_LENGTH_UNLIMITED);
-  dds_qset_history (qos, HISTORY_KIND, HISTORY_DEPTH);
-  dds_entity_t rd = dds_create_reader (dp, tp, qos, NULL);
-  dds_delete_qos (qos);
+  dds_entity_t rds[NTOPICS];
+  for (int j = 0; j < NTOPICS; j++)
+  {
+    char name[20] = "Data";
+    if (j > 0) snprintf (name + 4, sizeof (name) - 4, "%d", j);
+    dds_entity_t tp = dds_create_topic (dp, &CONCAT (DATATYPE_C, _desc), name, NULL, NULL);
+    dds_qos_t *qos = dds_create_qos ();
+    dds_qset_reliability (qos, DDS_RELIABILITY_RELIABLE, DDS_SECS(10));
+    dds_qset_resource_limits (qos, (10 * 1048576) / sizeof (DATATYPE_C), DDS_LENGTH_UNLIMITED, DDS_LENGTH_UNLIMITED);
+    dds_qset_history (qos, HISTORY_KIND, HISTORY_DEPTH);
+    rds[j] = dds_create_reader (dp, tp, qos, NULL);
+    dds_delete_qos (qos);
 
-  for (size_t i = 0; i < sizeof (xs) / sizeof (xs[0]); i++)
-    ptrs[i] = &xs[i];
+    for (size_t i = 0; i < sizeof (xs[j]) / sizeof (xs[j][0]); i++)
+      ptrs[j][i] = &xs[j][i];
 
-  dds_listener_t *list = dds_create_listener (&stats);
-  dds_lset_data_available (list, on_data_available);
-  dds_set_listener (rd, list);
-  dds_delete_listener (list);
+    dds_listener_t *list = dds_create_listener ((void *) ((uintptr_t) j));
+    dds_lset_data_available (list, on_data_available);
+    dds_set_listener (rds[j], list);
+    dds_delete_listener (list);
+    dds_delete (tp);
+  }
 
   signal (SIGTERM, sigh);
   while (!interrupted)
     dds_sleepfor (DDS_MSECS (100));
 
-  dds_delete (tp);
-  dds_delete (rd);
+  for (int j = 0; j < NTOPICS; j++)
+    dds_delete (rds[j]);
   Stats_fini (&stats);
 }
 

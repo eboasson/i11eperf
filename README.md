@@ -19,6 +19,7 @@ CMake options are used to configure the benchmark:
 * `KEEP_ALL` boolean (`ON`): if true it uses a keep-all history on the reader and writer, else a keep-last-10 history
 * `BATCHING` boolean (`OFF`): if true it enables manual batching of small samples in larger packets in Cyclone DDS (I am not aware of a similar switch for any of the others)
 * `SHM` boolean (`ON`): if true it uses the default configuration in Fast-DDS, else it only enables the UDP transport
+* `LOANS` boolean (`OFF`): if true, use loans; currently only implemented for Cyclone C++
 * `DATATYPE` string (`a1024`): one of the built-in datatypes
   * `ou`: "one unsigned long":
   ```
@@ -33,6 +34,7 @@ CMake options are used to configure the benchmark:
   * `a128`: a 128-bytes large one, analogous to `a32`
   * `a1024`, `a16k`, `a48k`, `a64k`, `a1M`, `a2M`, `a4M`, `a8M`: analogous to `a32` and `a128`
 * `SLEEP_MS` integer (`0`): the number of milliseconds to sleep between publications
+* `NTOPICS` integer (`1`): the number of topics on which to do all this
 
 The defaults are in parenthesis and correspond to an out-of-the-box throughput test with 1024-byte large samples. OpenDDS requires an initialization file or it won't use the interoperable DDSI protocol, this is copied into the build directly and used automatically.
 

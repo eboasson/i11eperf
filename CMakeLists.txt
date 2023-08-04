@@ -9,8 +9,8 @@
 #
 # SPDX-License-Identifier: EPL-2.0 OR BSD-3-Clause
 #
-project(i11eperf LANGUAGES C CXX)
 cmake_minimum_required(VERSION 3.17) # not sure what version is actually required
+project(i11eperf LANGUAGES C CXX)
 
 list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
@@ -49,11 +49,13 @@ endif()
 # cmake -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_PREFIX_PATH="$HOME/C/cdds/CC/install;$HOME/C/cxx/CC/install;$HOME/C/iceoryx/install;$HOME/adlink/eProsima/install;$HOME/adlink/OpenDDS/install;`brew --prefix`;`brew --prefix openssl`" ..
 
 set(CMAKE_C_STANDARD 99)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 option(KEEP_ALL "Use KEEP_ALL history" ON)
 option(BATCHING "Enable batching (Cyclone)" OFF)
+option(LOANS "Enable loans on rd/wr (affects Cyclone C++ only)" OFF)
 option(SHM "Enable use of shared memory (FastDDS)" ON)
+set(NTOPICS 1 CACHE STRING "Use N topics in parallel")
 set(DATATYPE "a1024" CACHE STRING "Data type to use")
 set(SLEEP_MS 0 CACHE STRING "ms to sleep between two pubs")
 
@@ -72,8 +74,14 @@ if(SHM)
 else()
   add_compile_definitions(SHM=0)
 endif()
+if(LOANS)
+  add_compile_definitions(LOANS=1)
+else()
+  add_compile_definitions(LOANS=0)
+endif()
 add_compile_definitions(DATATYPE=${DATATYPE})
 add_compile_definitions(SLEEP_MS=${SLEEP_MS})
+add_compile_definitions(NTOPICS=${NTOPICS})
 
 ### Cyclone DDS / C -- copy IDL file to avoid name clash with fastddsgen output
 find_package(CycloneDDS QUIET)
@@ -104,20 +112,20 @@ endif()
 ### Cyclone DDS / C++
 find_package(CycloneDDS-CXX QUIET)
 if(CycloneDDS-CXX_FOUND)
+  # this shouldn't be needed, but the gods of CMake are appeased this way
+  get_target_property(cyclonedds_has_shm CycloneDDS::ddsc SHM_SUPPORT_IS_AVAILABLE)
+  mark_as_advanced(cyclonedds_has_shm)
+  if(cyclonedds_has_shm)
+    find_package(iceoryx_binding_c REQUIRED)
+  endif()
   message(STATUS "CycloneDDS C++ binding found")
   idlcxx_generate(TARGET i11eperf_c FILES idl/i11eperf.idl)
   add_executable(cpub src/cpub.cpp)
   add_executable(csub src/csub.cpp)
-  add_executable(clpub src/clpub.cpp)
-  add_executable(clsub src/clsub.cpp)
   target_compile_definitions(cpub PUBLIC CYCLONEDDS)
   target_compile_definitions(csub PUBLIC CYCLONEDDS)
-  target_compile_definitions(clpub PUBLIC CYCLONEDDS)
-  target_compile_definitions(clsub PUBLIC CYCLONEDDS)
   target_link_libraries(cpub i11eperf_c CycloneDDS-CXX::ddscxx)
   target_link_libraries(csub i11eperf_c CycloneDDS-CXX::ddscxx)
-  target_link_libraries(clpub i11eperf_c CycloneDDS-CXX::ddscxx)
-  target_link_libraries(clsub i11eperf_c CycloneDDS-CXX::ddscxx)
 else()
   message(STATUS "CycloneDDS C++ binding not found")
 endif()

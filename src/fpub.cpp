@@ -34,25 +34,41 @@ static void pub(DomainParticipant *dp)
   eprosima::fastdds::dds::TypeSupport ts(Traits<T>::ts());
   ts.register_type(dp);
   auto pub = dp->create_publisher(PUBLISHER_QOS_DEFAULT);
-  auto tp = dp->create_topic("Data", Traits<T>::name(), TOPIC_QOS_DEFAULT);
-
-  DataWriterQos qos;
-  qos.history().kind = HISTORY_KIND;
-  qos.history().depth = HISTORY_DEPTH;
-  qos.reliability().kind = RELIABLE_RELIABILITY_QOS;
-  qos.reliability().max_blocking_time.seconds = 10;
-  qos.reliability().max_blocking_time.nanosec = 0;
-  qos.resource_limits().max_samples = (10 * 1048576) / sizeof(T);
-  auto wr = pub->create_datawriter(tp, qos, nullptr);
+  std::vector<DataWriter *> wrs;
+  for (int i = 0; i < NTOPICS; i++) {
+    std::string name = "Data";
+    if (i > 0) name += std::to_string(i);
+    auto tp = dp->create_topic(name, Traits<T>::name(), TOPIC_QOS_DEFAULT);
+    DataWriterQos qos;
+    qos.history().kind = HISTORY_KIND;
+    qos.history().depth = HISTORY_DEPTH;
+    qos.reliability().kind = RELIABLE_RELIABILITY_QOS;
+    qos.reliability().max_blocking_time.seconds = 10;
+    qos.reliability().max_blocking_time.nanosec = 0;
+    qos.resource_limits().max_samples = (10 * 1048576) / sizeof(T);
+    auto wr = pub->create_datawriter(tp, qos, nullptr);
+    wrs.push_back(wr);
+  }
 
   signal(SIGTERM, sigh);
+  auto tdelta = std::chrono::milliseconds(SLEEP_MS);
+  std::chrono::time_point<std::chrono::steady_clock> tnext = std::chrono::steady_clock::now() + tdelta;
+  uint32_t seq = 0;
+  int r = 0;
   while (!interrupted)
   {
-    sample.ts() = gettime();
-    wr->write((void *)&sample);
-    ++sample.s();
+    for (int i = 0; i < NTOPICS; i++)
+    {
+      sample.ts() = gettime();
+      sample.s() = seq;
+      wrs[(i + r) % NTOPICS]->write(static_cast<void *>(&sample));
+    }
+    if (++r == NTOPICS)
+      r = 0;
+    seq++;
 #if SLEEP_MS != 0
-    std::this_thread::sleep_for(std::chrono::milliseconds(SLEEP_MS));
+    std::this_thread::sleep_until(tnext);
+    tnext += tdelta;
 #endif
   }
 }

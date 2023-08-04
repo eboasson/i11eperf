@@ -75,26 +75,29 @@ static void sub(DomainParticipant *dp, std::string statsname)
   TYPESUPPORT(DATATYPE);
   ts->register_type(dp, "");
   DDS::Subscriber *sub = dp->create_subscriber(SUBSCRIBER_QOS_DEFAULT, 0, OpenDDS::DCPS::DEFAULT_STATUS_MASK);
-  DDS::Topic *tp = dp->create_topic("Data", ts->get_type_name(), TOPIC_QOS_DEFAULT, 0, OpenDDS::DCPS::DEFAULT_STATUS_MASK);
-
-  DataReaderQos qos;
-  sub->get_default_datareader_qos(qos);
-  qos.history.kind = HISTORY_KIND;
-  qos.history.depth = HISTORY_DEPTH;
-  qos.reliability.kind = RELIABLE_RELIABILITY_QOS;
-  qos.reliability.max_blocking_time.sec = 10;
-  qos.reliability.max_blocking_time.nanosec = 0;
-  qos.resource_limits.max_samples = (10 * 1048576) / sizeof(T);
-  DDS::DataReader *rdw = sub->create_datareader(tp, qos, &l, OpenDDS::DCPS::DEFAULT_STATUS_MASK);
-  CONCAT(i11eperf::DATATYPE, DataReader) *rd = NARROW_R(rdw);
+  std::vector<CONCAT(i11eperf::DATATYPE, DataReader) *> rds;
+  for (int i = 0; i < NTOPICS; i++) {
+    std::string name = "Data";
+    if (i > 0) name += std::to_string(i);
+    DDS::Topic *tp = dp->create_topic(name.c_str(), ts->get_type_name(), TOPIC_QOS_DEFAULT, 0, OpenDDS::DCPS::DEFAULT_STATUS_MASK);
+    DataReaderQos qos;
+    sub->get_default_datareader_qos(qos);
+    qos.history.kind = HISTORY_KIND;
+    qos.history.depth = HISTORY_DEPTH;
+    qos.reliability.kind = RELIABLE_RELIABILITY_QOS;
+    qos.reliability.max_blocking_time.sec = 10;
+    qos.reliability.max_blocking_time.nanosec = 0;
+    qos.resource_limits.max_samples = (10 * 1048576) / sizeof(T);
+    DDS::DataReader *rdw = sub->create_datareader(tp, qos, &l, OpenDDS::DCPS::DEFAULT_STATUS_MASK);
+    rds.push_back(NARROW_R(rdw));
+  }
 
   signal(SIGTERM, sigh);
   while (!interrupted)
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-  sub->delete_datareader(rdw);
-  dp->delete_subscriber(sub);
-  dp->delete_topic(tp);
+  sub->delete_contained_entities();
+  dp->delete_contained_entities();
 }
 
 int main(int argc, char **argv)
