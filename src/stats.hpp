@@ -25,7 +25,7 @@ struct tslat {
 class Stats {
 public:
   Stats(unsigned maxraw, std::string statsname) :
-    tnext_(std::chrono::steady_clock::now() + std::chrono::seconds(1)),
+    tnext_(std::chrono::steady_clock::now() + std::chrono::seconds(REPORT_INTV)),
     count_(0), bytes_(0), lost_(0), errs_(0), nseq_(UINT32_MAX), nraw_(0), nlats_(0),
     maxraw_(maxraw),
     raw_(new tslat[maxraw]), statsname_(statsname) {
@@ -68,7 +68,7 @@ public:
     if (tnow > tnext_)
     {
       std::sort(lats_, lats_ + nlats_);
-      std::chrono::duration<double> dt = tnow - tnext_ + std::chrono::seconds(1);
+      std::chrono::duration<double> dt = tnow - tnext_ + std::chrono::seconds(REPORT_INTV);
       double srate = static_cast<double>(count_) / dt.count();
       double brate = static_cast<double>(bytes_) / dt.count();
       double meanlat = 0.0;
@@ -85,7 +85,7 @@ public:
                 << " usmeanlat " << 1e6 * meanlat
                 << " us90%lat " << 1e6 * ((nlats_ == 0) ? 0 : lats_[nlats_ - (nlats_ + 9) / 10])
                 << std::endl << std::flush;
-      tnext_ = tnow + std::chrono::seconds(1);
+      tnext_ = tnow + std::chrono::seconds(REPORT_INTV);
       count_ = lost_ = nlats_ = 0;
       bytes_ = 0;
     }

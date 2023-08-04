@@ -58,6 +58,7 @@ option(SHM "Enable use of shared memory (FastDDS)" ON)
 set(NTOPICS 1 CACHE STRING "Use N topics in parallel")
 set(DATATYPE "a1024" CACHE STRING "Data type to use")
 set(SLEEP_MS 0 CACHE STRING "ms to sleep between two pubs")
+set(REPORT_INTV 1 CACHE STRING "seconds between reports from subscriber")
 
 if(KEEP_ALL)
   add_compile_definitions(HISTORY=KEEP_ALL)
@@ -82,6 +83,7 @@ endif()
 add_compile_definitions(DATATYPE=${DATATYPE})
 add_compile_definitions(SLEEP_MS=${SLEEP_MS})
 add_compile_definitions(NTOPICS=${NTOPICS})
+add_compile_definitions(REPORT_INTV=${REPORT_INTV})
 
 ### Cyclone DDS / C -- copy IDL file to avoid name clash with fastddsgen output
 find_package(CycloneDDS QUIET)

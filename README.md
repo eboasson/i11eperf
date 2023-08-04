@@ -35,6 +35,7 @@ CMake options are used to configure the benchmark:
   * `a1024`, `a16k`, `a48k`, `a64k`, `a1M`, `a2M`, `a4M`, `a8M`: analogous to `a32` and `a128`
 * `SLEEP_MS` integer (`0`): the number of milliseconds to sleep between publications
 * `NTOPICS` integer (`1`): the number of topics on which to do all this
+* `REPORT_INTV` integer (`1`): the number of seconds between subscriber reports
 
 The defaults are in parenthesis and correspond to an out-of-the-box throughput test with 1024-byte large samples. OpenDDS requires an initialization file or it won't use the interoperable DDSI protocol, this is copied into the build directly and used automatically.
 

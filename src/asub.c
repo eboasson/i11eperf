@@ -45,7 +45,7 @@ struct Stats {
 
 static void Stats_init (struct Stats *s, unsigned maxraw, const char *statsname)
 {
-  s->tnext = gettime () + DDS_SECS (1);
+  s->tnext = gettime () + DDS_SECS (REPORT_INTV);
   s->count = s->lost = s->errs = s->nlats = s->nraw = 0;
   s->bytes = 0;
   s->nseq = UINT32_MAX;
@@ -92,7 +92,7 @@ static void Stats_report (struct Stats *s, int j)
   if (tnow > s->tnext)
   {
     qsort(s->lats, s->nlats, sizeof (s->lats[0]), double_cmp);
-    double dt = (tnow - s->tnext + DDS_SECS (1)) / 1e9;
+    double dt = (tnow - s->tnext + DDS_SECS (REPORT_INTV)) / 1e9;
     double srate = s->count / dt;
     double brate = s->bytes / dt;
     double meanlat = 0.0;
@@ -104,7 +104,7 @@ static void Stats_report (struct Stats *s, int j)
     }
     printf ("%.5f kS/s %.5f Gb/s lost %u errs %u usmeanlat %f us90%%lat %f\n", (srate * 1e-3), (brate * 8e-9), s->lost, s->errs, 1e6 * meanlat, 1e6 * ((s->nlats == 0) ? 0 : s->lats[s->nlats - (s->nlats + 9) / 10]));
     fflush (stdout);
-    s->tnext = tnow + DDS_SECS (1);
+    s->tnext = tnow + DDS_SECS (REPORT_INTV);
     s->count = s->bytes = s->lost = s->nlats = 0;
   }
 }

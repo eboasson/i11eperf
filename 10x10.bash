@@ -4,7 +4,7 @@
     { echo "need to be in a build directory where CMake has been run successfully before with a Ninja generator" 2>&1 ; exit 2 ; }
 
 for ntopics in {1..10} ; do
-    cmake -DBATCHING=0 -DDATATYPE=a1024 -DSHM=1 -DKEEP_ALL=1 -DSLEEP_MS=10 -DNTOPICS=$ntopics .
+    cmake -DBATCHING=0 -DDATATYPE=a1024 -DSHM=1 -DKEEP_ALL=1 -DSLEEP_MS=10 -DNTOPICS=$ntopics -DREPORT_INTV=4 .
     ninja
     for nprocs in {1..10} ; do
         echo "============= ntopics $ntopics nprocs $nprocs =============="
