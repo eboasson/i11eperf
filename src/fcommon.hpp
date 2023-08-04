@@ -13,7 +13,8 @@
 #define FCOMMON_HPP
 
 #include "fastdds_i11eperf.hpp"
+#include "config.h"
 
-eprosima::fastdds::dds::DomainParticipant *make_participant();
+eprosima::fastdds::dds::DomainParticipant *make_participant(const options& opts);
 
 #endif

@@ -29,7 +29,7 @@ using namespace std::literals;
 template<typename T>
 class L : public DataReaderListener {
 public:
-  L(DomainParticipant *dp, std::string statsname) : dp_(dp), stats_(10000000, statsname) {
+  L(DomainParticipant *dp, std::string statsname, std::chrono::nanoseconds report_intv) : dp_(dp), stats_(10000000, statsname, report_intv) {
     tref_ = gettime();
   }
   
@@ -57,21 +57,27 @@ static volatile sig_atomic_t interrupted = 0;
 static void sigh (int sig __attribute__ ((unused))) { interrupted = 1; }
 
 template<typename T>
-static void sub(DomainParticipant *dp, std::string statsname)
+static void sub(DomainParticipant *dp, const options& opts)
 {
-  L<T> l(dp, statsname);
+  L<T> l(dp, std::string(opts.latfile), std::chrono::nanoseconds(opts.report_intv));
 
   eprosima::fastdds::dds::TypeSupport ts(Traits<T>::ts());
   ts.register_type(dp);
   auto pub = dp->create_subscriber(SUBSCRIBER_QOS_DEFAULT);
   std::vector<DataReader *> rds;
-  for (int i = 0; i < NTOPICS; i++) {
+  for (int i = 0; i < opts.ntopics; i++)
+  {
     std::string name = "Data";
     if (i > 0) name += std::to_string(i);
     auto tp = dp->create_topic(name, Traits<T>::name(), TOPIC_QOS_DEFAULT);
     DataReaderQos qos;
-    qos.history().kind = HISTORY_KIND;
-    qos.history().depth = HISTORY_DEPTH;
+    if (opts.history == 0) {
+      qos.history().kind = KEEP_ALL_HISTORY_QOS;
+      qos.history().depth = 1;
+    } else {
+      qos.history().kind = KEEP_LAST_HISTORY_QOS;
+      qos.history().depth = opts.history;
+    }
     qos.reliability().kind = RELIABLE_RELIABILITY_QOS;
     qos.reliability().max_blocking_time.seconds = 10;
     qos.reliability().max_blocking_time.nanosec = 0;
@@ -80,6 +86,7 @@ static void sub(DomainParticipant *dp, std::string statsname)
     rds.push_back(rd);
   }
 
+  signal(SIGINT, sigh);
   signal(SIGTERM, sigh);
   while (!interrupted)
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -87,6 +94,7 @@ static void sub(DomainParticipant *dp, std::string statsname)
 
 int main(int argc, char **argv)
 {
-  sub<DATATYPE_CPP>(make_participant(), argc < 2 ? "" : std::string(argv[1]));
+  const options opts = get_options (argc, argv);
+  sub<DATATYPE_CPP>(make_participant(opts), opts);
   return 0;
 }

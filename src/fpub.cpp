@@ -29,19 +29,25 @@ static void sigh (int sig __attribute__ ((unused))) { interrupted = 1; }
 static DATATYPE_CPP sample;
 
 template<typename T>
-static void pub(DomainParticipant *dp)
+static void pub(DomainParticipant *dp, const options& opts)
 {
   eprosima::fastdds::dds::TypeSupport ts(Traits<T>::ts());
   ts.register_type(dp);
   auto pub = dp->create_publisher(PUBLISHER_QOS_DEFAULT);
   std::vector<DataWriter *> wrs;
-  for (int i = 0; i < NTOPICS; i++) {
+  for (int i = 0; i < opts.ntopics; i++)
+  {
     std::string name = "Data";
     if (i > 0) name += std::to_string(i);
     auto tp = dp->create_topic(name, Traits<T>::name(), TOPIC_QOS_DEFAULT);
     DataWriterQos qos;
-    qos.history().kind = HISTORY_KIND;
-    qos.history().depth = HISTORY_DEPTH;
+    if (opts.history == 0) {
+      qos.history().kind = KEEP_ALL_HISTORY_QOS;
+      qos.history().depth = 1;
+    } else {
+      qos.history().kind = KEEP_LAST_HISTORY_QOS;
+      qos.history().depth = opts.history;
+    }
     qos.reliability().kind = RELIABLE_RELIABILITY_QOS;
     qos.reliability().max_blocking_time.seconds = 10;
     qos.reliability().max_blocking_time.nanosec = 0;
@@ -50,31 +56,34 @@ static void pub(DomainParticipant *dp)
     wrs.push_back(wr);
   }
 
+  signal(SIGINT, sigh);
   signal(SIGTERM, sigh);
-  auto tdelta = std::chrono::milliseconds(SLEEP_MS);
+  auto tdelta = std::chrono::nanoseconds(opts.sleep);
   std::chrono::time_point<std::chrono::steady_clock> tnext = std::chrono::steady_clock::now() + tdelta;
   uint32_t seq = 0;
   int r = 0;
   while (!interrupted)
   {
-    for (int i = 0; i < NTOPICS; i++)
+    for (int i = 0; i < opts.ntopics; i++)
     {
       sample.ts() = gettime();
       sample.s() = seq;
-      wrs[(i + r) % NTOPICS]->write(static_cast<void *>(&sample));
+      wrs[(i + r) % opts.ntopics]->write(static_cast<void *>(&sample));
     }
-    if (++r == NTOPICS)
+    if (++r == opts.ntopics)
       r = 0;
     seq++;
-#if SLEEP_MS != 0
-    std::this_thread::sleep_until(tnext);
-    tnext += tdelta;
-#endif
+    if (opts.sleep)
+    {
+      std::this_thread::sleep_until(tnext);
+      tnext += tdelta;
+    }
   }
 }
 
-int main()
+int main(int argc, char **argv)
 {
-  pub<DATATYPE_CPP>(make_participant());
+  const options opts = get_options (argc, argv);
+  pub<DATATYPE_CPP>(make_participant(opts), opts);
   return 0;
 }

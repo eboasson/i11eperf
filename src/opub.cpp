@@ -27,13 +27,13 @@ static void sigh (int sig __attribute__ ((unused))) { interrupted = 1; }
 static DATATYPE_CPP sample;
 
 template<typename T>
-static void pub(DomainParticipant_var dp)
+static void pub(DomainParticipant_var dp, const options& opts)
 {
   TYPESUPPORT(DATATYPE);
   ts->register_type(dp, "");
   DDS::Publisher *pub = dp->create_publisher(PUBLISHER_QOS_DEFAULT, 0, OpenDDS::DCPS::DEFAULT_STATUS_MASK);
   std::vector<CONCAT(i11eperf::DATATYPE, DataWriter) *> wrs;
-  for (int i = 0; i < NTOPICS; i++) {
+  for (int i = 0; i < opts.ntopics; i++) {
     std::string name = "Data";
     if (i > 0) name += std::to_string(i);
     DDS::Topic *tp = dp->create_topic(name.c_str(), ts->get_type_name(), TOPIC_QOS_DEFAULT, 0, OpenDDS::DCPS::DEFAULT_STATUS_MASK);
@@ -46,8 +46,13 @@ static void pub(DomainParticipant_var dp)
     // - with data_representation and qos.representation, we get what we want
     qos.representation.value.length(1);
     qos.representation.value[0] = DDS::XCDR_DATA_REPRESENTATION;
-    qos.history.kind = HISTORY_KIND;
-    qos.history.depth = HISTORY_DEPTH;
+    if (opts.history == 0) {
+      qos.history.kind = KEEP_ALL_HISTORY_QOS;
+      qos.history.depth = 1;
+    } else {
+      qos.history.kind = KEEP_LAST_HISTORY_QOS;
+      qos.history.depth = opts.history;
+    }
     qos.reliability.kind = RELIABLE_RELIABILITY_QOS;
     qos.reliability.max_blocking_time.sec = 10;
     qos.reliability.max_blocking_time.nanosec = 0;
@@ -56,26 +61,28 @@ static void pub(DomainParticipant_var dp)
     wrs.push_back(NARROW_W(wrw));
   }
 
+  signal(SIGINT, sigh);
   signal(SIGTERM, sigh);
-  auto tdelta = std::chrono::milliseconds(SLEEP_MS);
+  auto tdelta = std::chrono::nanoseconds(opts.sleep);
   std::chrono::time_point<std::chrono::steady_clock> tnext = std::chrono::steady_clock::now() + tdelta;
   uint32_t seq = 0;
   int r = 0;
   while (!interrupted)
   {
-    for (int i = 0; i < NTOPICS; i++)
+    for (int i = 0; i < opts.ntopics; i++)
     {
       sample.ts = gettime();
       sample.s = seq;
-      wrs[(i + r) % NTOPICS]->write(sample, HANDLE_NIL);
+      wrs[(i + r) % opts.ntopics]->write(sample, HANDLE_NIL);
     }
-    if (++r == NTOPICS)
+    if (++r == opts.ntopics)
       r = 0;
     seq++;
-#if SLEEP_MS != 0
-    std::this_thread::sleep_until(tnext);
-    tnext += tdelta;
-#endif
+    if (opts.sleep)
+    {
+      std::this_thread::sleep_until(tnext);
+      tnext += tdelta;
+    }
   }
 
   pub->delete_contained_entities();
@@ -84,10 +91,11 @@ static void pub(DomainParticipant_var dp)
 
 int main(int argc, char *argv[])
 {
+  const options opts = get_options (argc, argv);
   TheServiceParticipant->default_configuration_file(ACE_TEXT("opendds.ini"));
   DDS::DomainParticipantFactory *dpf = TheParticipantFactoryWithArgs(argc, argv);
   DDS::DomainParticipant *dp = dpf->create_participant(0, PARTICIPANT_QOS_DEFAULT, 0, OpenDDS::DCPS::DEFAULT_STATUS_MASK);
-  pub<DATATYPE_CPP>(dp);
+  pub<DATATYPE_CPP>(dp, opts);
   dpf->delete_participant(dp);
   return 0;
 }

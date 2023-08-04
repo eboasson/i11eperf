@@ -14,12 +14,8 @@ The idea was that for C++ a single source should suffice, but it turns out that 
 
 # Configuration
 
-CMake options are used to configure the benchmark:
+A CMake option is used to configure the data type:
 
-* `KEEP_ALL` boolean (`ON`): if true it uses a keep-all history on the reader and writer, else a keep-last-10 history
-* `BATCHING` boolean (`OFF`): if true it enables manual batching of small samples in larger packets in Cyclone DDS (I am not aware of a similar switch for any of the others)
-* `SHM` boolean (`ON`): if true it uses the default configuration in Fast-DDS, else it only enables the UDP transport
-* `LOANS` boolean (`OFF`): if true, use loans; currently only implemented for Cyclone C++
 * `DATATYPE` string (`a1024`): one of the built-in datatypes
   * `ou`: "one unsigned long":
   ```
@@ -33,9 +29,19 @@ CMake options are used to configure the benchmark:
   * `a32`: a 32-bytes large data type by appending a 20-bytes large octet array to `ou`
   * `a128`: a 128-bytes large one, analogous to `a32`
   * `a1024`, `a16k`, `a48k`, `a64k`, `a1M`, `a2M`, `a4M`, `a8M`: analogous to `a32` and `a128`
-* `SLEEP_MS` integer (`0`): the number of milliseconds to sleep between publications
-* `NTOPICS` integer (`1`): the number of topics on which to do all this
-* `REPORT_INTV` integer (`1`): the number of seconds between subscriber reports
+
+All other options are set via comand line parameters of the various pub/sub programs:
+
+* `-n` integer (`1`): the number of topics to use (max = 20 to protect the stack in C version)
+* `-k` integer (`0`): the history depth, 0 means keep-all
+* `-i` integer (`0`): milliseconds between writing a burst of samples (one of each topic)
+* `-r` integer (`1`): report interval for the subscriber
+* `-o` string (`""`): write (some) raw latencies to the specified, disabled if the empty string
+* `-b`: enable writer batching (Cyclone)
+* `-l`: enable loans (Cyclone C++)
+* `-y`: restrict Fast-DDS to loopback interface
+* `-z`: disable Fast-DDS shared memory
+* `-h`: print help and exit
 
 The defaults are in parenthesis and correspond to an out-of-the-box throughput test with 1024-byte large samples. OpenDDS requires an initialization file or it won't use the interoperable DDSI protocol, this is copied into the build directly and used automatically.
 

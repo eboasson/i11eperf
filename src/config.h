@@ -1,22 +1,11 @@
 #ifndef CONFIG_H_
 #define CONFIG_H_
 
-// set HISTORY to KEEP_ALL to get a keep-all history, otherwise it becomes a keep-last
-// history with depth HISTORY
-#define KEEP_ALL 10000000
+#include <stdint.h>
+#include <stdbool.h>
 
-#ifndef HISTORY
-#define HISTORY KEEP_ALL
-#endif
-#ifndef DATATYPE
-#define DATATYPE ou
-#endif
-#ifndef BATCHING
-#define BATCHING 1
-#endif
-
-#ifndef NTOPICS
-#define NTOPICS 1
+#if defined (__cplusplus)
+extern "C" {
 #endif
 
 #define CONCAT1(a,b) a##b
@@ -25,31 +14,22 @@
 #define DATATYPE_CPP i11eperf::DATATYPE
 #define DATATYPE_C CONCAT (i11eperf_, DATATYPE)
 
-#if HISTORY <= 0 || HISTORY > KEEP_ALL
-#error
-#endif
-#ifndef __cplusplus
-#  if HISTORY == KEEP_ALL
-#    define HISTORY_KIND DDS_HISTORY_KEEP_ALL
-#    define HISTORY_DEPTH 1
-#  else
-#    define HISTORY_KIND DDS_HISTORY_KEEP_LAST
-#    define HISTORY_DEPTH HISTORY
-#  endif
-#elif defined FASTDDS || defined OPENDDS
-#  if HISTORY == KEEP_ALL
-#    define HISTORY_KIND KEEP_ALL_HISTORY_QOS
-#    define HISTORY_DEPTH 1
-#  else
-#    define HISTORY_KIND KEEP_LAST_HISTORY_QOS
-#    define HISTORY_DEPTH HISTORY
-#  endif
-#else
-#  if HISTORY == KEEP_ALL
-#    define HISTORY_KIND KeepAll()
-#  else
-#    define HISTORY_KIND KeepLast(HISTORY)
-#  endif
+struct options {
+  int ntopics;
+  int history;
+  bool batching;
+  bool loans;
+  bool fastdds_shm;
+  bool fastdds_onlyloopback;
+  int64_t sleep;
+  int64_t report_intv;
+  const char *latfile;
+};
+
+struct options get_options (int argc, char **argv);
+
+#if defined (__cplusplus)
+}
 #endif
 
 #endif

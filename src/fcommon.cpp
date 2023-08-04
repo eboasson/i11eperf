@@ -22,21 +22,18 @@
 using namespace eprosima::fastdds::dds;
 using namespace eprosima::fastdds::rtps;
 
-eprosima::fastdds::dds::DomainParticipant *make_participant()
+eprosima::fastdds::dds::DomainParticipant *make_participant(const options& opts)
 {
   DomainParticipantQos pqos;
-#if ! SHM
   pqos.transport().use_builtin_transports = false;
   auto udp_transport = std::make_shared<UDPv4TransportDescriptor>();
-  //udp_transport->interfaceWhiteList.push_back("127.0.0.1");
+  if (opts.fastdds_onlyloopback)
+    udp_transport->interfaceWhiteList.push_back("127.0.0.1");
   pqos.transport().user_transports.push_back(udp_transport);
-#else
-  pqos.transport().use_builtin_transports = false;
-  auto udp_transport = std::make_shared<UDPv4TransportDescriptor>();
-  udp_transport->interfaceWhiteList.push_back("127.0.0.1");
-  pqos.transport().user_transports.push_back(udp_transport);
-  auto shm_transport = std::make_shared<SharedMemTransportDescriptor>();
-  pqos.transport().user_transports.push_back(shm_transport);
-#endif
+  if (opts.fastdds_shm)
+  {
+    auto shm_transport = std::make_shared<SharedMemTransportDescriptor>();
+    pqos.transport().user_transports.push_back(shm_transport);
+  }
   return DomainParticipantFactory::get_instance()->create_participant(0, pqos);
 }

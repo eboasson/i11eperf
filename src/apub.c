@@ -21,10 +21,10 @@ static void sigh (int sig __attribute__ ((unused))) { interrupted = 1; }
 
 static DATATYPE_C sample;
 
-static void pub (dds_entity_t dp)
+static void pub (dds_entity_t dp, const struct options *opts)
 {
-  dds_entity_t wrs[NTOPICS];
-  for (int i = 0; i < NTOPICS; i++)
+  dds_entity_t wrs[opts->ntopics];
+  for (int i = 0; i < opts->ntopics; i++)
   {
     char name[20] = "Data";
     if (i > 0) snprintf (name + 4, sizeof (name) - 4, "%d", i);
@@ -32,10 +32,11 @@ static void pub (dds_entity_t dp)
     dds_qos_t *qos = dds_create_qos ();
     dds_qset_reliability (qos, DDS_RELIABILITY_RELIABLE, DDS_SECS(10));
     dds_qset_resource_limits (qos, (10 * 1048576) / sizeof (DATATYPE_C), DDS_LENGTH_UNLIMITED, DDS_LENGTH_UNLIMITED);
-    dds_qset_history (qos, HISTORY_KIND, HISTORY_DEPTH);
-#if BATCHING
-    dds_qset_writer_batching (qos, true);
-#endif
+    if (opts->history == 0)
+      dds_qset_history (qos, DDS_HISTORY_KEEP_ALL, 0);
+    else
+      dds_qset_history (qos, DDS_HISTORY_KEEP_LAST, opts->history);
+    dds_qset_writer_batching (qos, opts->batching);
     wrs[i] = dds_create_writer (dp, tp, qos, NULL);
     dds_delete_qos (qos);
     dds_delete (tp);
@@ -44,35 +45,37 @@ static void pub (dds_entity_t dp)
   dds_entity_t gc = dds_create_guardcondition (dp);
   dds_waitset_attach (ws, gc, 0); // empty waitset won't block (for better or for worse)
 
+  signal (SIGINT, sigh);
   signal (SIGTERM, sigh);
-  const dds_duration_t tdelta = DDS_MSECS (SLEEP_MS);
-  dds_time_t tnext = dds_time () + tdelta;
+  dds_time_t tnext = dds_time () + opts->sleep;
   int r = 0;
   while (!interrupted)
   {
-    for (int i = 0; i < NTOPICS; i++)
+    for (int i = 0; i < opts->ntopics; i++)
     {
       sample.ts = gettime ();
-      dds_write (wrs[(i + r) % NTOPICS], &sample);
+      dds_write (wrs[(i + r) % opts->ntopics], &sample);
     }
     ++sample.s;
-    if (++r == NTOPICS)
+    if (++r == opts->ntopics)
       r = 0;
 
-#if SLEEP_MS != 0
-    for (int i = 0; i < NTOPICS; i++)
-      dds_write_flush (wrs[i]); // just so we don't have to worry about BATCHING
-    // wait until time instead of sleep because dds_write takes time, too
-    dds_waitset_wait_until (ws, NULL, 0, tnext);
-    tnext += tdelta;
-#endif
+    if (opts->sleep)
+    {
+      if (opts->batching)
+        for (int i = 0; i < opts->ntopics; i++)
+          dds_write_flush (wrs[i]);
+      dds_waitset_wait_until (ws, NULL, 0, tnext);
+      tnext += opts->sleep;
+    }
   }
 }
 
-int main()
+int main(int argc, char **argv)
 {
+  const struct options opts = get_options (argc, argv);
   dds_entity_t dp = dds_create_participant (0, NULL, NULL);
-  pub(dp);
+  pub(dp, &opts);
   dds_delete (dp);
   return 0;
 }
