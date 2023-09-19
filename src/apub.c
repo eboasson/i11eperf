@@ -11,6 +11,7 @@
  */
 #include <string.h>
 #include <signal.h>
+#include <stdlib.h>
 #include "dds/dds.h"
 #include "i11eperf_a.h"
 #include "config.h"
@@ -49,14 +50,28 @@ static void pub (dds_entity_t dp, const struct options *opts)
   signal (SIGTERM, sigh);
   dds_time_t tnext = dds_time () + opts->sleep;
   int r = 0;
+  uint32_t s = 0;
+  DATATYPE_C *sampleptr = &sample;
   while (!interrupted)
   {
     for (int i = 0; i < opts->ntopics; i++)
     {
-      sample.ts = gettime ();
-      dds_write (wrs[(i + r) % opts->ntopics], &sample);
+      const dds_entity_t wr = wrs[(i + r) % opts->ntopics];
+#ifndef DDS_DATA_ALLOCATOR_ALLOC_ON_HEAP // proxy for presence of meaningful loan support
+      if (opts->loans)
+      {
+        void *ptr;
+        dds_return_t ret;
+        ret = dds_request_loan (wr, &ptr);
+        if (ret != 0) { fprintf (stderr, "failed to get loan\n"); exit (2); }
+        sampleptr = ptr;
+      }
+#endif
+      sampleptr->ts = gettime ();
+      sampleptr->s = s;
+      dds_write (wr, sampleptr);
     }
-    ++sample.s;
+    ++s;
     if (++r == opts->ntopics)
       r = 0;
 

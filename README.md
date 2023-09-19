@@ -37,8 +37,8 @@ All other options are set via comand line parameters of the various pub/sub prog
 * `-i` integer (`0`): milliseconds between writing a burst of samples (one of each topic)
 * `-r` integer (`1`): report interval for the subscriber
 * `-o` string (`""`): write (some) raw latencies to the specified, disabled if the empty string
-* `-b`: enable writer batching (Cyclone)
-* `-l`: enable loans (Cyclone C++)
+* `-b`: enable writer batching (Cyclone, C++ only on 0.10)
+* `-l`: enable loans (Cyclone)
 * `-y`: restrict Fast-DDS to loopback interface
 * `-z`: disable Fast-DDS shared memory
 * `-h`: print help and exit

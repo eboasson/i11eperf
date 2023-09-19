@@ -125,6 +125,7 @@ static DATATYPE_C xs[5];
 static dds_sample_info_t si[sizeof (xs) / sizeof (xs[0])];
 static void *ptrs[sizeof (xs) / sizeof (xs[0])];
 static int64_t tref;
+static bool use_loans;
 
 static void on_data_available(dds_entity_t rd, void *varg)
 {
@@ -134,9 +135,13 @@ static void on_data_available(dds_entity_t rd, void *varg)
   do {
     n = dds_take(rd, ptrs, si, N, N);
     int64_t tnow = gettime ();
-    for (int i = 0; i < n; i++)
-      if (si[i].valid_data)
-        Stats_update(&stats, xs[i].s, bytes(&xs[i]), (tnow - tref) / 1e9, (tnow - xs[i].ts) / 1e9);
+    for (int i = 0; i < n; i++) {
+      if (si[i].valid_data) {
+        DATATYPE_C const * const x = ptrs[i];
+        Stats_update(&stats, x->s, bytes(x), (tnow - tref) / 1e9, (tnow - x->ts) / 1e9);
+      }
+    }
+    dds_return_loan (rd, ptrs, n);
   } while (n == N);
   Stats_report (&stats);
 }
@@ -149,8 +154,13 @@ static void sub (dds_entity_t dp, const struct options *opts)
   tref = gettime ();
   Stats_init (&stats, 10000000, opts->latfile, opts->report_intv);
 
-  for (size_t i = 0; i < sizeof (xs) / sizeof (xs[0]); i++)
-    ptrs[i] = &xs[i];
+  use_loans = opts->loans;
+  if (!use_loans)
+  {
+    // provide application memory to force a copy
+    for (size_t i = 0; i < sizeof (xs) / sizeof (xs[0]); i++)
+      ptrs[i] = &xs[i];
+  }
 
   dds_entity_t rds[opts->ntopics];
   for (int j = 0; j < opts->ntopics; j++)
