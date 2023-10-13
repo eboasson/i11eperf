@@ -66,9 +66,16 @@ static void pub(DomainParticipant *dp, const options& opts)
   {
     for (int i = 0; i < opts.ntopics; i++)
     {
-      sample.ts() = gettime();
-      sample.s() = seq;
-      wrs[(i + r) % opts.ntopics]->write(static_cast<void *>(&sample));
+      auto wr = wrs[(i + r) % opts.ntopics];
+      void *ptr;
+      if (!opts.loans)
+        ptr = static_cast<void *>(&sample);
+      else if (wr->loan_sample (ptr) != ReturnCode_t::RETCODE_OK)
+        abort ();
+      T *s = static_cast<T *>(ptr);
+      s->ts() = gettime();
+      s->s() = seq;
+      wr->write(static_cast<void *>(s));
     }
     if (++r == opts.ntopics)
       r = 0;

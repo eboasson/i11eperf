@@ -29,11 +29,21 @@ using namespace std::literals;
 template<typename T>
 class L : public DataReaderListener {
 public:
-  L(DomainParticipant *dp, std::string statsname, std::chrono::nanoseconds report_intv) : dp_(dp), stats_(10000000, statsname, report_intv) {
+  L(DomainParticipant *dp, std::string statsname, std::chrono::nanoseconds report_intv, bool loans) : dp_(dp), stats_(10000000, statsname, report_intv), loans_(loans) {
     tref_ = gettime();
   }
   
   void on_data_available(DataReader *rd)
+  {
+    if (loans_)
+      do_loan (rd);
+    else
+      do_non_loan (rd);
+    stats_.report();
+  }
+
+private:
+  void do_non_loan(DataReader *rd)
   {
     static T x; // should be safe to make it static, large samples won't fit on stack
     ReturnCode_t rc;
@@ -44,13 +54,31 @@ public:
       const int32_t ns = si.source_timestamp.nanosec();
       stats_.update(x.s(), bytes(x), (tnow-tref_)/1e9, (tnow-x.ts())/1e9);
     }
-    stats_.report();
   }
 
-private:
+  void do_loan(DataReader *rd)
+  {
+    FASTDDS_CONST_SEQUENCE(DataSeq, T);
+    DataSeq data;
+    SampleInfoSeq si;
+    while (ReturnCode_t::RETCODE_OK == rd->take(data, si))
+    {
+      for (LoanableCollection::size_type i = 0; i < si.length(); ++i)
+      {
+        const T& x = data[i];
+        const int64_t tnow = gettime();
+        const int64_t s = si[i].source_timestamp.seconds();
+        const int32_t ns = si[i].source_timestamp.nanosec();
+        stats_.update(x.s(), bytes(x), (tnow-tref_)/1e9, (tnow-x.ts())/1e9);
+      }
+      rd->return_loan (data, si);
+    }
+  }
+
   int64_t tref_;
   DomainParticipant *dp_;
   Stats stats_;
+  bool loans_;
 };
 
 static volatile sig_atomic_t interrupted = 0;
@@ -59,7 +87,7 @@ static void sigh (int sig __attribute__ ((unused))) { interrupted = 1; }
 template<typename T>
 static void sub(DomainParticipant *dp, const options& opts)
 {
-  L<T> l(dp, std::string(opts.latfile), std::chrono::nanoseconds(opts.report_intv));
+  L<T> l(dp, std::string(opts.latfile), std::chrono::nanoseconds(opts.report_intv), opts.loans);
 
   eprosima::fastdds::dds::TypeSupport ts(Traits<T>::ts());
   ts.register_type(dp);
