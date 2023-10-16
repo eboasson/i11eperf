@@ -50,8 +50,6 @@ private:
     SampleInfo si;
     if ((rc = rd->take_next_sample(&x, &si)) == ReturnCode_t::RETCODE_OK && si.valid_data) {
       const int64_t tnow = gettime();
-      const int64_t s = si.source_timestamp.seconds();
-      const int32_t ns = si.source_timestamp.nanosec();
       stats_.update(x.s(), bytes(x), (tnow-tref_)/1e9, (tnow-x.ts())/1e9);
     }
   }
@@ -67,8 +65,6 @@ private:
       {
         const T& x = data[i];
         const int64_t tnow = gettime();
-        const int64_t s = si[i].source_timestamp.seconds();
-        const int32_t ns = si[i].source_timestamp.nanosec();
         stats_.update(x.s(), bytes(x), (tnow-tref_)/1e9, (tnow-x.ts())/1e9);
       }
       rd->return_loan (data, si);
