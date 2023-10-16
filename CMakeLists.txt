@@ -104,33 +104,44 @@ endif()
 ### Fast-DDS
 find_package(fastrtps QUIET)
 if(fastrtps_FOUND)
-  message(STATUS "Fast-DDS found")
-  # Assuming FastDDS was built using colcon as described in the Fast-DDS docs
-  # we can make a reasonable guess at the location of fastddsgen
-  # (this is with or without the "--merge-install" option of colcon)
-  find_file(fastddsgen fastddsgen HINTS
-    ${fastrtps_DIR}/../../../../../src/fastddsgen/scripts
-    ${fastrtps_DIR}/../../../../src/fastddsgen/scripts)
-  if(fastddsgen STREQUAL "fastddsgen-NOTFOUND")
-    message(WARNING "Fast-DDS found, but fastddsgen not found, skipping Fast-DDS.
+  # fastddsgen needs java, let's verify that we have it
+  find_package(Java QUIET)
+  if(NOT Java_FOUND)
+    message(WARNING "Fast-DDS found, but not Java, skipping Fast-DDS.")
+  else()
+    message(STATUS "Fast-DDS found (${fastrtps_DIR})")
+    # Assuming FastDDS was built using colcon as described in the Fast-DDS docs
+    # we can make a reasonable guess at the location of fastddsgen
+    # (this is with or without the "--merge-install" option of colcon)
+    find_file(fastddsgen fastddsgen.jar HINTS
+      ${fastrtps_DIR}/../../fastddsgen/java
+      ${fastrtps_DIR}/../../../../../src/fastddsgen
+      ${fastrtps_DIR}/../../../../src/fastddsgen)
+    if(fastddsgen STREQUAL "fastddsgen-NOTFOUND")
+      message(WARNING "Fast-DDS found, but fastddsgen.jar not found, skipping Fast-DDS.
   fastrtps_DIR = ${fastrtps_DIR}
   try cmake -Dfastddsgen=PATH-TO-FASTDDSGEN")
-  else()
-    set(fidlgen i11eperf.cxx i11eperf.h i11eperfPubSubTypes.cxx i11eperfPubSubTypes.h)
-    list(TRANSFORM fidlgen PREPEND "${CMAKE_CURRENT_BINARY_DIR}/")
-    add_custom_command(
-      OUTPUT  ${fidlgen}
-      COMMAND "${fastddsgen}"
-      ARGS    -replace "${CMAKE_CURRENT_LIST_DIR}/idl/i11eperf.idl"
-      DEPENDS "${CMAKE_CURRENT_LIST_DIR}/idl/i11eperf.idl")
-    add_library(i11eperf_f STATIC ${fidlgen})
-    target_include_directories(i11eperf_f PUBLIC "${CMAKE_CURRENT_BINARY_DIR}" "${fastrtps_INCLUDE_DIR}" "${fastcdr_INCLUDE_DIR}")
-    add_executable(fpub src/fpub.cpp src/fcommon.cpp src/config.c i11eperf.h)
-    add_executable(fsub src/fsub.cpp src/fcommon.cpp src/config.c i11eperf.h)
-    target_compile_definitions(fpub PUBLIC FASTDDS)
-    target_compile_definitions(fsub PUBLIC FASTDDS)
-    target_link_libraries(fpub i11eperf_f fastrtps fastcdr foonathan_memory)
-    target_link_libraries(fsub i11eperf_f fastrtps fastcdr foonathan_memory)
+    else()
+      message(STATUS "fastddsgen.jar found at ${fastddsgen}")
+      set(fidlgen i11eperf.cxx i11eperf.h i11eperfPubSubTypes.cxx i11eperfPubSubTypes.h)
+      list(TRANSFORM fidlgen PREPEND "${CMAKE_CURRENT_BINARY_DIR}/")
+      # eProsima's installation procedure is a mess: if you use colcon to build everything
+      # you don't get a script in the installation dir and the script in the source
+      # directory then doesn't work ...  So run Java directly
+      add_custom_command(
+        OUTPUT  ${fidlgen}
+        COMMAND java -jar "${fastddsgen}"
+        ARGS    -replace "${CMAKE_CURRENT_LIST_DIR}/idl/i11eperf.idl"
+        DEPENDS "${CMAKE_CURRENT_LIST_DIR}/idl/i11eperf.idl")
+      add_library(i11eperf_f STATIC ${fidlgen})
+      target_include_directories(i11eperf_f PUBLIC "${CMAKE_CURRENT_BINARY_DIR}" "${fastrtps_INCLUDE_DIR}" "${fastcdr_INCLUDE_DIR}")
+      add_executable(fpub src/fpub.cpp src/fcommon.cpp src/config.c i11eperf.h)
+      add_executable(fsub src/fsub.cpp src/fcommon.cpp src/config.c i11eperf.h)
+      target_compile_definitions(fpub PUBLIC FASTDDS)
+      target_compile_definitions(fsub PUBLIC FASTDDS)
+      target_link_libraries(fpub i11eperf_f fastrtps fastcdr foonathan_memory)
+      target_link_libraries(fsub i11eperf_f fastrtps fastcdr foonathan_memory)
+    endif()
   endif()
 else()
   message(STATUS "Fast-DDS not found")
