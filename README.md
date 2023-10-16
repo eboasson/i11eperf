@@ -38,9 +38,9 @@ All other options are set via comand line parameters of the various pub/sub prog
 * `-r` integer (`1`): report interval for the subscriber
 * `-o` string (`""`): write (some) raw latencies to the specified, disabled if the empty string
 * `-b`: enable writer batching (Cyclone, C++ only on 0.10)
-* `-l`: enable loans (Cyclone)
+* `-l`: enable loans (Cyclone, Fast-DDS)
 * `-y`: restrict Fast-DDS to loopback interface
-* `-z`: disable Fast-DDS shared memory
+* `-z`: disable Fast-DDS shared memory transport
 * `-h`: print help and exit
 
 The defaults are in parenthesis and correspond to an out-of-the-box throughput test with 1024-byte large samples. OpenDDS requires an initialization file or it won't use the interoperable DDSI protocol, this is copied into the build directly and used automatically.
