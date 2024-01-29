@@ -5,7 +5,7 @@ This provides a set of small simple benchmark programs capable of doing throughp
 * [Eclipse Cyclone DDS C](https://github.com/eclipse-cyclonedds/cyclonedds) (`apub` and `asub`)
 * [Eclipse Cyclone DDS C++11](https://github.com/eclipse-cyclonedds/cyclonedds-cxx) (`cpub` and `csub`)
 * [eProsima Fast-DDS C++](https://github.com/eProsima/Fast-DDS) (`fpub` and `fsub`)
-* [OCI OpenDDS C++](https://opendds.org) (`opub` and `osub`)
+* [OpenDDS C++](https://github.com/OpenDDS/OpenDDS) (`opub` and `osub`)
 * [ADLINK OpenSplice C++11](https://github.com/ADLINK-IST/opensplice) (`spub` and `ssub`)
 
 It uses CMake `find_package` to find these implementations, skipping any that it can't find. Cyclone, Fast-DDS and OpenDDS provide support for this when installed, for OpenSplice there is a module included in this configuration that relies on the `OSPL_HOME` variable (optionally `OSPL_HOME_NORMALIZED` and `SPLICE_TARGET` so it can target a build tree rather than an install tree). If all the DDS implementations are built and installed according to their instructions, and `CMAKE_PREFIX_PATH` includes the installation roots of all (except OpenSplice, which relies on the `OSPL_HOME` environment) it should work.
